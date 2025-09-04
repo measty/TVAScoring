@@ -5,6 +5,15 @@ This subpackage provides convenience wrappers around TIAToolbox's
 helpers and dataset utilities will be added in subsequent tasks.
 """
 
+from .dataset import PatchDataset
 from .extractors import build_filters, make_extractors
+from .samplers import BalancedSampler
+from .transforms import build_transforms
 
-__all__ = ["build_filters", "make_extractors"]
+__all__ = [
+    "build_filters",
+    "make_extractors",
+    "PatchDataset",
+    "BalancedSampler",
+    "build_transforms",
+]

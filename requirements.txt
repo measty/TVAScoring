@@ -1,2 +1,6 @@
 tiatoolbox
+torch
+torchvision
+albumentations
+opencv-python-headless
 pytest
