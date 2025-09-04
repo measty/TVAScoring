@@ -1,0 +1,14 @@
+model:
+  backbone_weights: /path/to/conch_weights.pth
+  head_type: linear
+  finetune: frozen
+output_dir: /path/to/output/conch
+epochs: 50
+batch_size: 32
+learning_rate: 0.0005
+weight_decay: 0.0001
+optimizer: adamw
+scheduler: cosine
+num_workers: 8
+precision: fp16
+early_stopping_patience: 10
