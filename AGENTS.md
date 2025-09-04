@@ -189,7 +189,7 @@ tubulovillous/
 ### Progress
 
 * [x] 0 Bootstrap repo & packaging
-* [ ] 1 Configs
+* [x] 1 Configs — add data_paths, dataset, and training YAML templates
 * [ ] 2 Annotation ingestion
 * [ ] 3 WSI helpers
 * [ ] 4 Train/val/test split
