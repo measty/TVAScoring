@@ -5,7 +5,7 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 ## Functionality
 
 * Convert QuPath `.geojson` files → TIAToolbox `SQLiteStore` (.db). Build with `SQLiteStore.from_geojson(...)` then persist via `store.dump(db_path)` for fast re‑use.
-* Read WSIs via TIAToolbox (`WSIReader`) at a chosen resolution (e.g., 0.5 µm/px) with robust μm⇔px handling.
+* Read WSIs via TIAToolbox (`WSIReader`) at a chosen resolution (e.g., 0.5 µm/px).
 * Build a grouped **train/val/test** split at the WSI level.
 * Wrap **SlidingWindowPatchExtractor** for class-filtered patch sampling using `store_filter` (e.g., `props['class'] == 'villous'`).
 * PyTorch `Dataset`/`DataLoader` yielding RGB patches and a regression target in **\[−1, 1]** (villous=+1, tubular=−1, optional tubulovillous=0).
@@ -55,7 +55,7 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 ## Additional Context
 
 * **Annotation property names** from QuPath must match filters (commonly `props['class']`). Expose a config to customize the property key if users use a different field (e.g., `annotation_type`).
-* **Coordinate pitfalls**: Always compute read scale from baseline MPP; never assume pyramid levels map 1:1 across scanners. Centralize μm⇔px conversions.
+* **Coordinate pitfalls**: Always compute scale factors from baseline MPP if working at non-baseline mpp and scale coordinates appropriately; never assume pyramid levels map 1:1 across scanners. 
 * **Patch borders**: set `within_bound=False` to allow padding so border regions are included; prefer `pad_mode='constant'` with black padding.
 * **Small‑data regime**: favor strong augmentation and moderate regularization; consider freezing Conch for initial runs.
 
@@ -112,8 +112,7 @@ tubulovillous/
 │       ├── __init__.py
 │       ├── io/
 │       │   ├── __init__.py
-│       │   ├── annotations.py        # from_geojson → SQLiteStore (.db), cache, filter helpers
-│       │   └── wsi.py                 # WSIReader helpers, μm⇔px utilities
+│       │   └── annotations.py        # from_geojson → SQLiteStore (.db), cache, filter helpers
 │       │
 │       ├── data/
 │       │   ├── __init__.py
@@ -171,18 +170,17 @@ tubulovillous/
 | **0**  | **Bootstrap repo & packaging**            | `pyproject.toml`, `requirements.txt`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `README.md`                                     | Declare package `tvs`; set console entry points; pin deps (tiatoolbox, torch, albumentations, rich, tqdm, tifffile, shapely, timm, pytest). |
 | **1**  | **Configs**                               | `configs/*.yaml`                                                                                                                             | Data roots, class→score mapping, patch size/stride, resolution/units, augmentation, training hparams.                                       |
 | **2**  | **Annotation ingestion**                  | `src/tvs/io/annotations.py`, `scripts/prepare_annotations.py`, `src/tvs/cli/prepare_annotations.py`                                          | Load `.geojson` → `SQLiteStore` (TIAToolbox), validate class props, cache, simple stats per slide.                                      |
-| **3**  | **WSI helpers**                           | `src/tvs/io/wsi.py`                                                                                                                          | Wrap `WSIReader`; consistent μm⇔px conversion; expose `read_region` with sanity checks.                                                     |
-| **4**  | **Train/val/test split**                  | `scripts/split_dataset.py`, `src/tvs/cli/split.py`                                                                                           | Grouped split by WSI; write CSVs (split manifests).                                                                                 |
-| **5**  | **Extractor wrappers**                    | `src/tvs/data/extractors.py`                                                                                                                 | Convenience around `SlidingWindowPatchExtractor` with `store_filter` per class, `min_mask_ratio`, padding, stride.                          |
-| **6**  | **Dataset & Samplers**                    | `src/tvs/data/dataset.py`, `src/tvs/data/samplers.py`, `src/tvs/data/transforms.py`                                                          | Merge multiple class-conditioned extractors; balanced sampling; Albumentations pipelines.                                                   |
-| **7**  | **Unit tests: IO & Dataset**              | `tests/test_annotations.py`, `tests/test_extractors.py`, `tests/test_dataset.py`, `tests/conftest.py`                                        | Synthetic WSI + polygons; verify patch coverage, label mapping, and deterministic splits.                                                   |
-| **8**  | **CNN baseline**                          | `src/tvs/models/cnn_baseline.py`, `src/tvs/models/factory.py`                                                                                | Small ConvNet with global pooling → MLP → `tanh`.                                                                                           |
-| **9**  | **Conch head**                            | `src/tvs/models/conch_head.py`, `src/tvs/models/factory.py`                                                                                  | Conch backbone; add transformer/MLP head; config for freeze vs fine-tune and weight init from checkpoint.                            |
-| **10** | **Training engine & CLI**                 | `src/tvs/training/engine.py`, `src/tvs/training/losses.py`, `src/tvs/training/metrics.py`, `scripts/train.py`, `src/tvs/cli/train.py`        | AMP, grad clipping, early stopping, LR scheduling; rich+tqdm logging; checkpointing.                                                        |
-| **11** | **Evaluation & preview tools**            | `scripts/evaluate.py`, `src/tvs/cli/evaluate.py`, `scripts/preview_patches.py`, `src/tvs/cli/preview.py`, `src/tvs/viz/overlays.py`          | Metric computation; reliability plots; patch montages; score overlays.                                                                      |
-| **12** | **Whole‑slide inference**                 | `src/tvs/inference/tiler.py`, `src/tvs/inference/stitcher.py`, `src/tvs/inference/scorer.py`, `scripts/score_wsi.py`, `src/tvs/cli/score.py` | Dense scoring on tissue/annotations; write annotations store or stitch -> low res PNG overlays.                                                                 |
-| **13** | **Unit tests: models/training/inference** | `tests/test_models.py`, `tests/test_training.py`, `tests/test_inference.py`                                                                  | Forward pass shapes; overfit-a-batch test; tiling/stitching correctness.                                                                    |
-| **14** | **Docs & Cleanup**                        | `README.md`, `AGENTS.md`                                                                                                                     | Add quick-start, examples, finalize notes.                                                                                                  |
+| **3**  | **Train/val/test split**                  | `scripts/split_dataset.py`, `src/tvs/cli/split.py`                                                                                           | Grouped split by WSI; write CSVs (split manifests).                                                                                 |
+| **4**  | **Extractor wrappers**                    | `src/tvs/data/extractors.py`                                                                                                                 | Convenience around `SlidingWindowPatchExtractor` with `store_filter` per class, `min_mask_ratio`, padding, stride.                          |
+| **5**  | **Dataset & Samplers**                    | `src/tvs/data/dataset.py`, `src/tvs/data/samplers.py`, `src/tvs/data/transforms.py`                                                          | Merge multiple class-conditioned extractors; balanced sampling; Albumentations pipelines.                                                   |
+| **6**  | **Unit tests: IO & Dataset**              | `tests/test_annotations.py`, `tests/test_extractors.py`, `tests/test_dataset.py`, `tests/conftest.py`                                        | Synthetic WSI + polygons; verify patch coverage, label mapping, and deterministic splits.                                                   |
+| **7**  | **CNN baseline**                          | `src/tvs/models/cnn_baseline.py`, `src/tvs/models/factory.py`                                                                                | Small ConvNet with global pooling → MLP → `tanh`.                                                                                           |
+| **8**  | **Conch head**                            | `src/tvs/models/conch_head.py`, `src/tvs/models/factory.py`                                                                                  | Conch backbone; add transformer/MLP head; config for freeze vs fine-tune and weight init from checkpoint.                            |
+| **9** | **Training engine & CLI**                 | `src/tvs/training/engine.py`, `src/tvs/training/losses.py`, `src/tvs/training/metrics.py`, `scripts/train.py`, `src/tvs/cli/train.py`        | AMP, grad clipping, early stopping, LR scheduling; rich+tqdm logging; checkpointing.                                                        |
+| **10** | **Evaluation & preview tools**            | `scripts/evaluate.py`, `src/tvs/cli/evaluate.py`, `scripts/preview_patches.py`, `src/tvs/cli/preview.py`, `src/tvs/viz/overlays.py`          | Metric computation; reliability plots; patch montages; score overlays.                                                                      |
+| **11** | **Whole‑slide inference**                 | `src/tvs/inference/tiler.py`, `src/tvs/inference/stitcher.py`, `src/tvs/inference/scorer.py`, `scripts/score_wsi.py`, `src/tvs/cli/score.py` | Dense scoring on tissue/annotations; write annotations store or stitch -> low res PNG overlays.                                                                 |
+| **12** | **Unit tests: models/training/inference** | `tests/test_models.py`, `tests/test_training.py`, `tests/test_inference.py`                                                                  | Forward pass shapes; overfit-a-batch test; tiling/stitching correctness.                                                                    |
+| **13** | **Docs & Cleanup**                        | `README.md`, `AGENTS.md`                                                                                                                     | Add quick-start, examples, finalize notes.                                                                                                  |
 
 > **Tip:** After each task, add a brief ✓ entry under **AGENTS.md** so progress is explicit and new subtasks can be appended without losing context.
 
@@ -191,16 +189,15 @@ tubulovillous/
 * [x] 0 Bootstrap repo & packaging
 * [x] 1 Configs — add data_paths, dataset, and training YAML templates
 * [x] 2 Annotation ingestion — convert GeoJSON annotations to cached SQLite stores
-* [ ] 3 WSI helpers
-* [ ] 4 Train/val/test split
-* [ ] 5 Extractor wrappers
-* [ ] 6 Dataset & Samplers
-* [ ] 7 Unit tests: IO & Dataset
+* [ ] 3 Train/val/test split
+* [ ] 4 Extractor wrappers
+* [ ] 5 Dataset & Samplers
+* [ ] 6 Unit tests: IO & Dataset
   * [x] add annotation ingestion tests
-* [ ] 8 CNN baseline
-* [ ] 9 Conch head
-* [ ] 10 Training engine & CLI
-* [ ] 11 Evaluation & preview tools
-* [ ] 12 Whole‑slide inference
-* [ ] 13 Unit tests: models/training/inference
-* [ ] 14 Docs & Cleanup
+* [ ] 7 CNN baseline
+* [ ] 8 Conch head
+* [ ] 9 Training engine & CLI
+* [ ] 10 Evaluation & preview tools
+* [ ] 11 Whole‑slide inference
+* [ ] 12 Unit tests: models/training/inference
+* [ ] 13 Docs & Cleanup
