@@ -190,7 +190,7 @@ tubulovillous/
 * [x] 1 Configs — add data_paths, dataset, and training YAML templates
 * [x] 2 Annotation ingestion — convert GeoJSON annotations to cached SQLite stores
 * [x] 3 Train/val/test split
-* [ ] 4 Extractor wrappers
+* [x] 4 Extractor wrappers — class-filtered patch extractors
 * [ ] 5 Dataset & Samplers
 * [ ] 6 Unit tests: IO & Dataset
   * [x] add annotation ingestion tests
