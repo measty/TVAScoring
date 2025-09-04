@@ -188,7 +188,7 @@ tubulovillous/
 
 ### Progress
 
-* [ ] 0 Bootstrap repo & packaging
+* [x] 0 Bootstrap repo & packaging
 * [ ] 1 Configs
 * [ ] 2 Annotation ingestion
 * [ ] 3 WSI helpers
