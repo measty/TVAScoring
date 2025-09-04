@@ -66,8 +66,8 @@ def split_dataset(
 
     splits = {
         "train": slide_paths[:n_train],
-        "val": slide_paths[n_train: n_train + n_val],
-        "test": slide_paths[n_train + n_val:],
+        "val": slide_paths[n_train : n_train + n_val],
+        "test": slide_paths[n_train + n_val :],
     }
     for split_name, paths in splits.items():
         csv_path = dest_dir / f"{split_name}.csv"
