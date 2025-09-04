@@ -190,12 +190,13 @@ tubulovillous/
 
 * [x] 0 Bootstrap repo & packaging
 * [x] 1 Configs — add data_paths, dataset, and training YAML templates
-* [ ] 2 Annotation ingestion
+* [x] 2 Annotation ingestion — convert GeoJSON annotations to cached SQLite stores
 * [ ] 3 WSI helpers
 * [ ] 4 Train/val/test split
 * [ ] 5 Extractor wrappers
 * [ ] 6 Dataset & Samplers
 * [ ] 7 Unit tests: IO & Dataset
+  * [x] add annotation ingestion tests
 * [ ] 8 CNN baseline
 * [ ] 9 Conch head
 * [ ] 10 Training engine & CLI
