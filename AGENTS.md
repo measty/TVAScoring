@@ -189,7 +189,7 @@ tubulovillous/
 * [x] 0 Bootstrap repo & packaging
 * [x] 1 Configs — add data_paths, dataset, and training YAML templates
 * [x] 2 Annotation ingestion — convert GeoJSON annotations to cached SQLite stores
-* [ ] 3 Train/val/test split
+* [x] 3 Train/val/test split
 * [ ] 4 Extractor wrappers
 * [ ] 5 Dataset & Samplers
 * [ ] 6 Unit tests: IO & Dataset
