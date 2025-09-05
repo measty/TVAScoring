@@ -5,3 +5,4 @@ albumentations
 opencv-python-headless
 pytest
 strong-augment
+pysqlite3-binary

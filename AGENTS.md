@@ -193,7 +193,7 @@ tubulovillous/
 * [x] 3 Train/val/test split
 * [x] 4 Extractor wrappers — class-filtered patch extractors
 * [x] 5 Dataset & Samplers — balanced sampling and Albumentations pipelines
-* [ ] 6 Unit tests: IO & Dataset
+* [x] 6 Unit tests: IO & Dataset
 * [ ] 7 CNN baseline
 * [ ] 8 Conch head
 * [ ] 9 Training engine & CLI

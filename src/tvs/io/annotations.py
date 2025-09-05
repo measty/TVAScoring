@@ -12,22 +12,51 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+# ---------------------------------------------------------------------------
+# TIAToolbox uses SQLite with SpatiaLite for persistent annotation storage.
+# Some Python builds ship ``sqlite3`` without extension-loading support which
+# is required by :class:`SQLiteStore`.  ``pysqlite3`` provides a fully featured
+# sqlite module so we try to import it and alias it before importing
+# TIAToolbox.  If it is unavailable the import simply falls back to the
+# standard ``sqlite3`` module.
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    import sys
+
+    import pysqlite3 as sqlite3  # type: ignore
+
+    # Replace stdlib sqlite3 with fully featured build providing
+    # ``enable_load_extension`` required by SQLiteStore.
+    sys.modules["sqlite3"] = sqlite3
+except Exception:  # pragma: no cover
+    import sqlite3  # type: ignore
 
 from tiatoolbox.annotation import AnnotationStore, SQLiteStore
 
-__all__ = ["geojson_to_sqlite", "prepare_annotations"]
+# Ensure the storage module also uses the patched sqlite3 build.
+try:  # pragma: no cover - defensive
+    import tiatoolbox.annotation.storage as _storage
+
+    _storage.sqlite3 = sqlite3
+except Exception:  # pragma: no cover
+    pass
+
+__all__ = ["get_class_from_props", "geojson_to_sqlite", "prepare_annotations"]
+
 
 def get_class_from_props(props: dict[str, Any], class_key: str = "name") -> str:
     """Get the class from the properties. In our data, the class key is 'name'.
     Annotations are named T1, T2, etc or V1, V2 etc with first letter being the class.
-    
+
     """
     if class_key not in props:
         raise ValueError(
             f"Annotation is missing the '{class_key}' property.",
         )
     return props[class_key][0]
+
 
 def _validate_and_stats(
     store: AnnotationStore, class_key: str
