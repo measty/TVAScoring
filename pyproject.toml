@@ -16,6 +16,7 @@ dependencies = [
     "torchvision",
     "albumentations",
     "opencv-python-headless",
+    "conch @ git+https://github.com/mahmoodlab/CONCH.git",
 ]
 
 [project.optional-dependencies]
