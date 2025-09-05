@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping
 
 import tiatoolbox.tools.patchextraction as patchextraction
-from tiatoolbox.annotation import AnnotationStore
 from tiatoolbox.wsicore.wsireader import WSIReader
 
 __all__ = ["build_filters", "make_extractors"]
@@ -45,7 +44,7 @@ def build_filters(
 
 def make_extractors(
     wsi: WSIReader | str | Path,
-    store: AnnotationStore,
+    store_path: str,
     class_filters: Mapping[str, Callable[[dict[str, str]], bool]],
     *,
     patch_size: int,
@@ -61,8 +60,8 @@ def make_extractors(
     wsi:
         Whole-slide image as a :class:`WSIReader` or a path to one.  If a path
         is supplied it is opened via :func:`WSIReader.open`.
-    store:
-        Annotation store restricting sampling locations.
+    store_path:
+        Path to annotation store .db file restricting sampling locations.
     class_filters:
         Mapping from class label to a ``store_filter`` callable selecting
         annotations of that class.
@@ -95,7 +94,7 @@ def make_extractors(
     for label, store_filter in class_filters.items():
         extractors[label] = patchextraction.SlidingWindowPatchExtractor(
             input_img=wsi,
-            input_mask=store,
+            input_mask=store_path,
             patch_size=patch_size,
             stride=stride,
             within_bound=False,
