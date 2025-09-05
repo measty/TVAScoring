@@ -31,7 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--class-key",
-        default="class",
+        default="name",
         help="Annotation property containing the class label.",
     )
     parser.add_argument(

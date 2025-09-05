@@ -12,12 +12,22 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
 
 from tiatoolbox.annotation import AnnotationStore, SQLiteStore
 
 __all__ = ["geojson_to_sqlite", "prepare_annotations"]
 
+def get_class_from_props(props: dict[str, Any], class_key: str = "name") -> str:
+    """Get the class from the properties. In our data, the class key is 'name'.
+    Annotations are named T1, T2, etc or V1, V2 etc with first letter being the class.
+    
+    """
+    if class_key not in props:
+        raise ValueError(
+            f"Annotation is missing the '{class_key}' property.",
+        )
+    return props[class_key][0]
 
 def _validate_and_stats(
     store: AnnotationStore, class_key: str
@@ -30,7 +40,7 @@ def _validate_and_stats(
         The annotation store containing geometries.
     class_key:
         Key within the annotation ``properties`` mapping that stores the
-        class label.  Typically ``"class"`` when exporting from QuPath.
+        class label.  Typically ``"name"`` in this project.
 
     Returns
     -------
@@ -49,11 +59,8 @@ def _validate_and_stats(
     )
     for ann in store.values():
         props = getattr(ann, "properties", {})
-        if class_key not in props:
-            raise ValueError(
-                f"Annotation {ann} is missing the '{class_key}' property.",
-            )
-        label = props[class_key]
+
+        label = get_class_from_props(props, class_key)
         stats[label]["count"] += 1
         # ``geometry`` is a shapely object; ``area`` is in pixel units.
         stats[label]["area"] += ann.geometry.area
@@ -64,7 +71,7 @@ def geojson_to_sqlite(
     geojson_path: Path,
     db_path: Path,
     *,
-    class_key: str = "class",
+    class_key: str = "name",
     cache: bool = True,
 ) -> Dict[str, Dict[str, float]]:
     """Convert a GeoJSON file to ``SQLiteStore`` and return statistics.
@@ -113,7 +120,7 @@ def prepare_annotations(
     source_dir: Path,
     dest_dir: Path,
     *,
-    class_key: str = "class",
+    class_key: str = "name",
     cache: bool = True,
 ) -> Dict[str, Dict[str, Dict[str, float]]]:
     """Batch convert GeoJSON annotations to ``SQLiteStore`` databases.

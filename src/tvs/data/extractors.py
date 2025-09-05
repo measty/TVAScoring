@@ -11,7 +11,7 @@ the target class.  Common parameters such as ``stride`` and
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Callable, Iterable, Mapping
 
 import tiatoolbox.tools.patchextraction as patchextraction
 from tiatoolbox.annotation import AnnotationStore
@@ -23,9 +23,9 @@ __all__ = ["build_filters", "make_extractors"]
 def build_filters(
     labels: Iterable[str],
     *,
-    class_key: str = "class",
-) -> dict[str, str]:
-    """Generate ``store_filter`` expressions for annotation classes.
+    class_key: str = "name",
+) -> dict[str, Callable[[dict[str, str]], bool]]:
+    """Generate ``store_filter`` callable for annotation classes.
 
     Parameters
     ----------
@@ -37,16 +37,16 @@ def build_filters(
     Returns
     -------
     dict
-        Mapping of label → filter string suitable for ``store_filter``.
+        Mapping of label → filter fn suitable for ``store_filter``.
     """
 
-    return {label: f"props['{class_key}'] == '{label}'" for label in labels}
+    return {label: lambda props: props[class_key][0] == label for label in labels}
 
 
 def make_extractors(
     wsi: WSIReader | str | Path,
     store: AnnotationStore,
-    class_filters: Mapping[str, str],
+    class_filters: Mapping[str, Callable[[dict[str, str]], bool]],
     *,
     patch_size: int,
     stride: int | tuple[int, int] | None = None,
@@ -64,7 +64,7 @@ def make_extractors(
     store:
         Annotation store restricting sampling locations.
     class_filters:
-        Mapping from class label to a ``store_filter`` expression selecting
+        Mapping from class label to a ``store_filter`` callable selecting
         annotations of that class.
     patch_size:
         Size of the extracted patches in pixels.

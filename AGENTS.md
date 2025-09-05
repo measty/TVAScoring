@@ -7,7 +7,7 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 * Convert QuPath `.geojson` files → TIAToolbox `SQLiteStore` (.db). Build with `SQLiteStore.from_geojson(...)` then persist via `store.dump(db_path)` for fast re‑use.
 * Read WSIs via TIAToolbox (`WSIReader`) at a chosen resolution (e.g., 0.5 µm/px).
 * Build a grouped **train/val/test** split at the WSI level.
-* Wrap **SlidingWindowPatchExtractor** for class-filtered patch sampling using `store_filter` (e.g., `props['class'] == 'villous'`).
+* Wrap **SlidingWindowPatchExtractor** for class-filtered patch sampling using `store_filter`. An annotation's class can be inferred from its 'name' property. Tubular annotations will have a name like 'T1', 'T2, etc; villous annotations will have a name like 'V1', 'V2', etc. A callable can be passed to `store_filter` to filter (e.g., `lambda props: props['name'].startswith('V')`).
 * PyTorch `Dataset`/`DataLoader` yielding RGB patches and a regression target in **\[−1, 1]** (villous=+1, tubular=−1, optional tubulovillous=0).
 * Two model options:
 
@@ -24,7 +24,7 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 ### Data & Annotations
 
 * **Annotation ingestion**: Use `SQLiteStore.from_geojson(path)` and persist to a `.db` via `store.dump(db_path)` for fast subsequent loads.
-* **Filter strings**: Leverage `SlidingWindowPatchExtractor(..., input_mask=annotation_store, store_filter="props['class'] == 'villous']")`-style filters. Provide a small helper to generate safe filters from a mapping `{label: score}`.
+* **Filter function**: Leverage `SlidingWindowPatchExtractor(..., input_mask=annotation_store, store_filter=lambda props: props['name'].startswith('V'))`-style filters. Provide a small helper to generate safe filters from a mapping `{label: score}`.
 * **Label mapping**: default `{ 'tubular': -1.0, 'villous': +1.0, 'tubulovillous': 0.0 }` (last optional). Allow user-config overrides.
 * **Min mask ratio**: set `min_mask_ratio` (e.g., 0.5) to ensure patches are mostly within annotation polygons.
 * **Resolution/units**: prefer explicit physical units (`resolution: 0.5, units: "mpp"`) for consistent patch contents across slides.
@@ -153,6 +153,7 @@ tubulovillous/
 │           └── score.py
 │
 └── tests/
+    ├── test_data/                   # tiny synthetic WSI + toy annotations for unit tests
     ├── __init__.py
     ├── conftest.py                   # fixtures: tiny WSI, toy annotations
     ├── test_annotations.py
@@ -193,7 +194,6 @@ tubulovillous/
 * [x] 4 Extractor wrappers — class-filtered patch extractors
 * [x] 5 Dataset & Samplers — balanced sampling and Albumentations pipelines
 * [ ] 6 Unit tests: IO & Dataset
-  * [x] add annotation ingestion tests
 * [ ] 7 CNN baseline
 * [ ] 8 Conch head
 * [ ] 9 Training engine & CLI
