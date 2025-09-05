@@ -6,7 +6,8 @@ models used to regress a score in ``[-1, 1]`` indicating the
 """
 
 from .cnn_baseline import CNNBaseline
+from .conch_head import ConchHead
 from .factory import make_model
 from .resnet import ResNet18Baseline
 
-__all__ = ["CNNBaseline", "ResNet18Baseline", "make_model"]
+__all__ = ["CNNBaseline", "ResNet18Baseline", "ConchHead", "make_model"]

@@ -198,7 +198,7 @@ tubulovillous/
 * [x] 5 Dataset & Samplers — balanced sampling and Albumentations pipelines
 * [x] 6 Unit tests: IO & Dataset
 * [x] 7 CNN baseline (small custom & ResNet-18)
-* [ ] 8 Conch head
+* [x] 8 Conch head
 * [ ] 9 Training engine & CLI
 * [ ] 10 Evaluation & preview tools
 * [ ] 11 Whole‑slide inference

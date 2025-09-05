@@ -6,3 +6,4 @@ opencv-python-headless
 pytest
 strong-augment
 pysqlite3-binary
+conch @ git+https://github.com/mahmoodlab/CONCH.git
