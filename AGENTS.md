@@ -9,9 +9,10 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 * Build a grouped **train/val/test** split at the WSI level.
 * Wrap **SlidingWindowPatchExtractor** for class-filtered patch sampling using `store_filter`. An annotation's class can be inferred from its 'name' property. Tubular annotations will have a name like 'T1', 'T2, etc; villous annotations will have a name like 'V1', 'V2', etc. A callable can be passed to `store_filter` to filter (e.g., `lambda props: props['name'].startswith('V')`).
 * PyTorch `Dataset`/`DataLoader` yielding RGB patches and a regression target in **\[−1, 1]** (villous=+1, tubular=−1, optional tubulovillous=0).
-* Two model options:
+* Three model options:
 
   * **CNN baseline** trained from scratch.
+  * **ResNet-18 baseline** with ImageNet pretrained backbone.
   * **Transformer/ViT head on top of Conch** patch embeddings (Mahmood Lab), w/ optional freezing of the backbone.
 * Training engine with mixed precision, early stopping, and detailed logging (tqdm + rich logging).
 * Evaluation: RMSE/MAE + Spearman/Pearson against target scores; class-wise calibration plots.
@@ -39,6 +40,7 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 
 * **Output range**: final layer uses `tanh` to enforce \[−1, 1]. Train with **Huber** or **MSE** loss.
 * **CNN baseline**: compact ConvNet (or `timm` backbone) with global pooling + MLP head.
+* **ResNet-18 baseline**: ImageNet pretrained backbone with a linear ``tanh`` head.
 * **Conch-based model (ViT backbone)**: start from Mahmood Lab's Conch ViT patch-embedding model; attach a lightweight head (**linear** or **MLP**) *or* optionally replace the last transformer block with a task-specific variant. Fine‑tuning modes: **frozen backbone** (head‑only) or **end‑to‑end**; configure LR multipliers and weight decay accordingly.
 * Log per-class residuals, reliability curves (bin score vs target), and patch montages for quick qualitative checks.
 
@@ -194,7 +196,8 @@ tubulovillous/
 * [x] 4 Extractor wrappers — class-filtered patch extractors
 * [x] 5 Dataset & Samplers — balanced sampling and Albumentations pipelines
 * [x] 6 Unit tests: IO & Dataset
-* [ ] 7 CNN baseline
+* [x] 7 CNN baseline
+* [x] ResNet-18 baseline
 * [ ] 8 Conch head
 * [ ] 9 Training engine & CLI
 * [ ] 10 Evaluation & preview tools
