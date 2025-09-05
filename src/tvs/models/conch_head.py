@@ -1,3 +1,4 @@
+# isort: skip_file
 """Conch backbone with regression heads for TubuloVillous scoring.
 
 This module provides :class:`ConchHead` which wraps the CONCH vision
@@ -14,11 +15,19 @@ import json
 from pathlib import Path
 from typing import Optional
 
-import conch.open_clip_custom.factory as conch_factory
 import torch
-from conch.open_clip_custom.coca_model import CoCa
-from conch.open_clip_custom.factory import create_model as conch_create_model
 from torch import nn
+
+try:  # pragma: no cover - optional dependency
+    import conch.open_clip_custom.factory as conch_factory
+    from conch.open_clip_custom.coca_model import CoCa
+    from conch.open_clip_custom.factory import create_model as conch_create_model
+except Exception as exc:  # pragma: no cover - explicit failure if CONCH missing
+    raise ImportError(
+        "CONCH is required for ConchHead. Install via "
+        '`pip install "conch @ git+https://github.com/mahmoodlab/CONCH.git"`'
+    ) from exc
+
 
 __all__ = ["ConchHead"]
 
@@ -111,7 +120,6 @@ class ConchHead(nn.Module):
     @staticmethod
     def _build_backbone(checkpoint_path: Optional[str], image_size: int) -> CoCa:
         """Construct CONCH backbone, optionally loading weights."""
-
         if checkpoint_path:
             return conch_create_model(
                 "conch_ViT-B-16",
