@@ -126,6 +126,7 @@ tubulovillous/
 │       ├── models/
 │       │   ├── __init__.py
 │       │   ├── cnn_baseline.py       # small ConvNet/ResNet-ish
+│       │   ├── resnet.py             # Imagenet-pretrained ResNet-18 backbone & head
 │       │   ├── conch_head.py         # Conch (ViT); linear/MLP head or replace last block → score
 │       │   └── factory.py            # make_model(cfg)
 │       │
@@ -177,7 +178,7 @@ tubulovillous/
 | **4**  | **Extractor wrappers**                    | `src/tvs/data/extractors.py`                                                                                                                 | Convenience around `SlidingWindowPatchExtractor` with `store_filter` per class, `min_mask_ratio`, padding, stride.                          |
 | **5**  | **Dataset & Samplers**                    | `src/tvs/data/dataset.py`, `src/tvs/data/samplers.py`, `src/tvs/data/transforms.py`                                                          | Merge multiple class-conditioned extractors; balanced sampling; Albumentations pipelines.                                                   |
 | **6**  | **Unit tests: IO & Dataset**              | `tests/test_annotations.py`, `tests/test_extractors.py`, `tests/test_dataset.py`, `tests/conftest.py`                                        | Example WSI + geojson in `tests/test_data`; verify patch coverage, label mapping, and deterministic splits.                                                   |
-| **7**  | **CNN baseline**                          | `src/tvs/models/cnn_baseline.py`, `src/tvs/models/factory.py`                                                                                | Small ConvNet with global pooling → MLP → `tanh`.                                                                                           |
+| **7**  | **CNN baseline**                          | `src/tvs/models/cnn_baseline.py`, `src/tvs/models/cnn_baseline.py`, `src/tvs/models/factory.py`                                                                    | Small ConvNet or imageNet-pretrained resnet18 with global pooling → MLP → `tanh`.                                                                 |
 | **8**  | **Conch head**                            | `src/tvs/models/conch_head.py`, `src/tvs/models/factory.py`                                                                                  | Conch backbone; add transformer/MLP head; config for freeze vs fine-tune and weight init from checkpoint.                            |
 | **9** | **Training engine & CLI**                 | `src/tvs/training/engine.py`, `src/tvs/training/losses.py`, `src/tvs/training/metrics.py`, `scripts/train.py`, `src/tvs/cli/train.py`        | AMP, grad clipping, early stopping, LR scheduling; rich+tqdm logging; checkpointing.                                                        |
 | **10** | **Evaluation & preview tools**            | `scripts/evaluate.py`, `src/tvs/cli/evaluate.py`, `scripts/preview_patches.py`, `src/tvs/cli/preview.py`, `src/tvs/viz/overlays.py`          | Metric computation; reliability plots; patch montages; score overlays.                                                                      |
@@ -196,8 +197,7 @@ tubulovillous/
 * [x] 4 Extractor wrappers — class-filtered patch extractors
 * [x] 5 Dataset & Samplers — balanced sampling and Albumentations pipelines
 * [x] 6 Unit tests: IO & Dataset
-* [x] 7 CNN baseline
-* [x] ResNet-18 baseline
+* [x] 7 CNN baseline (small custom & ResNet-18)
 * [ ] 8 Conch head
 * [ ] 9 Training engine & CLI
 * [ ] 10 Evaluation & preview tools
