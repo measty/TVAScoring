@@ -39,7 +39,13 @@ def build_filters(
         Mapping of label → filter fn suitable for ``store_filter``.
     """
 
-    return {label: lambda props: props[class_key][0] == label for label in labels}
+    # ``lambda`` within a comprehension would otherwise capture ``label`` by
+    # reference leading all generated functions to reference the *last* label
+    # in ``labels``.  Using a default argument preserves the current value.
+    return {
+        label: (lambda props, label=label: props[class_key][0] == label)
+        for label in labels
+    }
 
 
 def make_extractors(
