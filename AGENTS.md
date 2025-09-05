@@ -63,11 +63,11 @@ Train a model to assign a continuous score to WSI patches indicating where archi
 
 ## General Instructions (Important!)
 
-1. Code should generally be written in python. Any appriopriate, well-maintained libraries may be used (add new dependencies into requirements.txt). HTML/javascript or similar could be used for interactive visualization purposes. Pytorch should be used for any ML needs.
+1. Code should generally be written in python. Any appriopriate, well-maintained libraries may be used (remember to add new dependencies into requirements.txt). HTML/javascript or similar could be used for interactive visualization purposes. Pytorch should be used for any ML needs.
 2. Code should be well documented, with docstrings and comments where appropriate - but do not over-do comments on obvious code.
 3. Users should be kept informed on what is happening while code is running via well-chosen logging at key points describing the task currently being performed (and on what, if appropriate), and tqdm should be used to provide progress indicators for potentially long-running loops.
 4. Code should be well structured, with a clear directory structure and modular code.
-5. Code should be well tested, with unit tests (use pytest) for all major functions and classes.
+5. Code should be well tested, with unit tests (use pytest) for all major functions and classes. Do not 'fudge' tests to get them to pass - the focus should be on correctness and ensuring intended behaviour.
 6. The main tools in the toolkit should be runnable from the command line (use Argparse).
 7. When considering compute requirements, assume availability of a reasonably powerful modern workstation with a single 24Gb GPU and 128Gb ram. However, write code with efficiency and speed in mind, where possible.
 8. When you feel it would be useful for organisational/planning purposes to modify or add notes/tasks/etc into this markdown file, you should do so. However, be concise. This will help you keep track of what you are doing, what you need to do, and how the repo is organised.
