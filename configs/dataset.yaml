@@ -1,6 +1,6 @@
 patch_size: 512
 stride: 256
-resolution: 0.5
+resolution: 1.0
 units: mpp
 min_mask_ratio: 0.5
 class_map:
