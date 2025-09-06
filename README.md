@@ -1,12 +1,54 @@
 # TubuloVillous Scoring (tvs)
 
-A research project to score colorectal polyp architecture on whole slide images.
+A research project to score colorectal polyp architecture on whole slide images using TIAToolbox and PyTorch.
 
 ## Installation
 
 ```bash
 pip install -e .
 ```
+
+## Quick Start
+
+1. **Prepare annotation stores**
+
+   Convert QuPath-exported GeoJSON files to SQLite stores for fast access:
+
+   ```bash
+   tvs-prepare-annotations path/to/geojson/ path/to/annotations/
+   ```
+
+2. **Create train/val/test splits**
+
+   ```bash
+   tvs-split path/to/annotations/ splits/ --val 0.2 --test 0.2
+   ```
+
+3. **Train a model**
+
+   ```bash
+   tvs-train configs/train_cnn.yaml \
+     --dataset-config configs/dataset.yaml \
+     --data-paths configs/data_paths.yaml \
+     --train-manifest splits/train.csv \
+     --val-manifest splits/val.csv
+   ```
+
+4. **Evaluate predictions**
+
+   Provide a CSV with `prediction` and `target` columns to compute metrics and a reliability plot:
+
+   ```bash
+   tvs-evaluate predictions.csv
+   ```
+
+5. **Score a whole-slide image**
+
+   ```bash
+   tvs-score slide.svs model.ts --annotation-db path/to/annotations/slide.db
+   ```
+
+   The command saves a heatmap PNG (`score.png`) at the specified resolution.
 
 ## Development
 
