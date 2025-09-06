@@ -19,6 +19,7 @@ dependencies = [
     "conch @ git+https://github.com/mahmoodlab/CONCH.git",
     "rich",
     "tqdm",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
