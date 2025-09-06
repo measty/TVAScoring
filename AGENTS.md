@@ -107,7 +107,8 @@ tubulovillous/
 │
 ├── notebooks/
 │   ├── 01_data_overview.ipynb
-│   └── 02_model_prototyping.ipynb
+│   ├── 02_model_training.ipynb
+│   └── 02_model_inference.ipynb
 │
 ├── src/
 │   └── tvs/                          # (tvs = TubuloVillouS)
