@@ -6,19 +6,19 @@ a single :class:`torch.utils.data.Dataset`. Each extractor yields patches from a
 specific class and the dataset exposes them with corresponding regression
 scores.
 
-The dataset expects a mapping of ``label -> extractor`` and a mapping of
-``label -> score``. When indexed it returns a tuple ``(image, target)`` where
-``image`` is a ``torch.Tensor`` and ``target`` is a float tensor containing the
-score associated with the patch's class. Optional transforms (Albumentations or
-torchvision) can be applied to the raw ``numpy`` images prior to tensor
-conversion.
+The dataset expects a mapping of ``label -> sequence of extractors`` and a
+mapping of ``label -> score``. When indexed it returns a tuple ``(image,
+target)`` where ``image`` is a ``torch.Tensor`` and ``target`` is a float tensor
+containing the score associated with the patch's class. Optional transforms
+(Albumentations or torchvision) can be applied to the raw ``numpy`` images prior
+to tensor conversion.
 """
 
 from __future__ import annotations
 
 from bisect import bisect_right
 from itertools import accumulate
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -34,7 +34,8 @@ class PatchDataset(Dataset):
     Parameters
     ----------
     extractors:
-        Mapping from class label to :class:`SlidingWindowPatchExtractor`.
+        Mapping from class label to a sequence of
+        :class:`SlidingWindowPatchExtractor` instances.
     label_scores:
         Mapping from class label to regression score (e.g. ``{"villous": 1.0}``).
     transform:
@@ -46,23 +47,32 @@ class PatchDataset(Dataset):
 
     def __init__(
         self,
-        extractors: Mapping[str, SlidingWindowPatchExtractor],
+        extractors: Mapping[str, Sequence[SlidingWindowPatchExtractor]],
         label_scores: Mapping[str, float],
         *,
         transform: Any | None = None,
         return_coords: bool = False,
     ) -> None:
         self.labels: list[str] = list(extractors.keys())
-        self.extractors: list[SlidingWindowPatchExtractor] = [
-            extractors[label] for label in self.labels
+        self.extractors: list[list[SlidingWindowPatchExtractor]] = [
+            list(extractors[label]) for label in self.labels
         ]
         self.scores = {label: float(label_scores[label]) for label in self.labels}
         self.transform = transform
         self.return_coords = return_coords
 
-        self._lengths: list[int] = [len(ex) for ex in self.extractors]
-        self._cumulative: list[int] = list(accumulate(self._lengths))
+        # lengths per extractor and per class
+        self._extractor_lengths: list[list[int]] = [
+            [len(ex) for ex in ex_list] for ex_list in self.extractors
+        ]
+        self._class_lengths: list[int] = [
+            sum(lengths) for lengths in self._extractor_lengths
+        ]
+        self._cumulative: list[int] = list(accumulate(self._class_lengths))
         self._total_length = self._cumulative[-1] if self._cumulative else 0
+        self._extractor_cumulatives: list[list[int]] = [
+            list(accumulate(lengths)) for lengths in self._extractor_lengths
+        ]
 
     # ------------------------------------------------------------------
     def __len__(self) -> int:  # noqa: D401 - short and clear
@@ -71,19 +81,23 @@ class PatchDataset(Dataset):
         return self._total_length
 
     # ------------------------------------------------------------------
-    def _locate(self, index: int) -> tuple[int, int]:
-        """Map a global index to ``(extractor_idx, patch_idx)``."""
+    def _locate(self, index: int) -> tuple[int, int, int]:
+        """Map a global index to ``(class_idx, extractor_idx, patch_idx)``."""
 
-        extractor_idx = bisect_right(self._cumulative, index)
-        prev_cum = self._cumulative[extractor_idx - 1] if extractor_idx > 0 else 0
-        patch_idx = index - prev_cum
-        return extractor_idx, patch_idx
+        class_idx = bisect_right(self._cumulative, index)
+        prev_cum = self._cumulative[class_idx - 1] if class_idx > 0 else 0
+        idx_within_class = index - prev_cum
+        extractor_cum = self._extractor_cumulatives[class_idx]
+        extractor_idx = bisect_right(extractor_cum, idx_within_class)
+        prev_ex_cum = extractor_cum[extractor_idx - 1] if extractor_idx > 0 else 0
+        patch_idx = idx_within_class - prev_ex_cum
+        return class_idx, extractor_idx, patch_idx
 
     # ------------------------------------------------------------------
     def __getitem__(self, index: int):
-        extractor_idx, patch_idx = self._locate(index)
-        label = self.labels[extractor_idx]
-        extractor = self.extractors[extractor_idx]
+        class_idx, extractor_idx, patch_idx = self._locate(index)
+        label = self.labels[class_idx]
+        extractor = self.extractors[class_idx][extractor_idx]
 
         patch = extractor[patch_idx]  # numpy array
         if isinstance(patch, tuple):
@@ -112,4 +126,6 @@ class PatchDataset(Dataset):
     def class_lengths(self) -> Mapping[str, int]:
         """Number of patches contributed by each class."""
 
-        return {label: length for label, length in zip(self.labels, self._lengths)}
+        return {
+            label: length for label, length in zip(self.labels, self._class_lengths)
+        }
