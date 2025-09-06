@@ -48,3 +48,31 @@ def test_trainer_early_stopping_and_checkpoint(tmp_path):
     assert (tmp_path / "last.pt").exists()
     assert (tmp_path / "best.pt").exists()
     assert optimizer.param_groups[0]["lr"] < 0.1
+
+
+def test_trainer_overfits_small_batch():
+    """Trainer should be able to overfit a tiny constant batch."""
+    x = torch.zeros(4, 3, 4, 4)
+    y = torch.full((4, 1), 0.8)
+    ds = TensorDataset(x, y)
+    loader = DataLoader(ds, batch_size=4)
+    model = torch.nn.Sequential(
+        torch.nn.Flatten(),
+        torch.nn.Linear(3 * 4 * 4, 1),
+        torch.nn.Tanh(),
+    )
+    with torch.no_grad():
+        model[1].weight.zero_()
+        model[1].bias.zero_()
+    optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
+    trainer = Trainer(
+        model,
+        optimizer,
+        torch.nn.MSELoss(),
+        torch.device("cpu"),
+    )
+    trainer.fit(loader, loader, epochs=25)
+    with torch.no_grad():
+        preds = model(x)
+        mse = torch.nn.functional.mse_loss(preds, y)
+    assert mse.item() < 1e-4

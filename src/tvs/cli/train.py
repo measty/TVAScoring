@@ -102,6 +102,11 @@ def main(args: list[str] | None = None) -> None:
     dataset_cfg = yaml.safe_load(ns.dataset_config.read_text())
     data_paths = yaml.safe_load(ns.data_paths.read_text())
 
+    output_dir = Path(train_cfg.get("output_dir", "outputs"))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "train.yaml").write_text(yaml.safe_dump(train_cfg))
+    (output_dir / "dataset.yaml").write_text(yaml.safe_dump(dataset_cfg))
+
     train_loader = _make_loader(
         ns.train_manifest,
         dataset_cfg,
@@ -144,7 +149,7 @@ def main(args: list[str] | None = None) -> None:
         max_grad_norm=train_cfg.get("grad_clip"),
         precision=train_cfg.get("precision", "fp32"),
         early_stopping_patience=train_cfg.get("early_stopping_patience"),
-        output_dir=Path(train_cfg.get("output_dir", "outputs")),
+        output_dir=output_dir,
     )
     trainer.fit(
         train_loader,
