@@ -34,6 +34,9 @@ pip install -e .
      --val-manifest splits/val.csv
    ```
 
+   The dataset configuration includes `slide_extension` to specify the slide file
+   extension (default: `svs`).
+
 4. **Evaluate predictions**
 
    Provide a CSV with `prediction` and `target` columns to compute metrics and a reliability plot:
@@ -45,7 +48,7 @@ pip install -e .
 5. **Score a whole-slide image**
 
    ```bash
-   tvs-score slide.svs model.ts --annotation-db path/to/annotations/slide.db
+   tvs-score slide.ext model.ts --annotation-db path/to/annotations/slide.db
    ```
 
    The command saves a heatmap PNG (`score.png`) at the specified resolution.
