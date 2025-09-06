@@ -10,3 +10,4 @@ conch @ git+https://github.com/mahmoodlab/CONCH.git
 openslide-bin
 rich
 tqdm
+matplotlib
