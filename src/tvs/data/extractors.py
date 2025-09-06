@@ -55,6 +55,7 @@ def make_extractors(
     *,
     patch_size: int,
     stride: int | tuple[int, int] | None = None,
+    resolution: float = 0.5,
     min_mask_ratio: float = 0.5,
     pad_mode: str = "constant",
     pad_constant_values: int = 0,
@@ -76,6 +77,8 @@ def make_extractors(
     stride:
         Step size between successive patches.  Defaults to ``patch_size`` when
         ``None``.
+    resolution:
+        Physical resolution in microns-per-pixel to extract patches at.
     min_mask_ratio:
         Minimum fraction of a patch that must lie within the annotation mask.
     pad_mode:
@@ -108,5 +111,7 @@ def make_extractors(
             pad_constant_values=pad_constant_values,
             min_mask_ratio=min_mask_ratio,
             store_filter=store_filter,
+            resolution=resolution,
+            units="mpp",
         )
     return extractors

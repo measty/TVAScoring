@@ -46,6 +46,7 @@ def _load_dataset(manifest: Path, dataset_cfg: dict, data_paths: dict) -> PatchD
         filters,
         patch_size=dataset_cfg["patch_size"],
         stride=dataset_cfg.get("stride"),
+        resolution=dataset_cfg.get("resolution", 0.5),
         min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
     )
     return PatchDataset(extractors, dataset_cfg["class_map"])

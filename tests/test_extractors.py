@@ -1,5 +1,9 @@
+import numpy as np
 from shapely.geometry import box
 from tiatoolbox.annotation import SQLiteStore
+from tiatoolbox.wsicore.wsireader import WSIReader
+
+from tvs.data.extractors import build_filters, make_extractors
 
 
 def test_extractors_patch_coverage(annotation_db, extractors):
@@ -24,3 +28,29 @@ def test_extractors_patch_coverage(annotation_db, extractors):
                 patch_poly.intersection(poly).area / patch_poly.area for poly in polys
             )
             assert max_cov > 0  # patch overlaps annotation
+
+
+def test_make_extractors_respects_resolution(annotation_db, wsi_path):
+    db_path, _ = annotation_db
+    wsi = WSIReader.open(wsi_path)
+    filters = build_filters(["T"])
+    extractors = make_extractors(
+        wsi,
+        str(db_path),
+        filters,
+        patch_size=512,
+        stride=512,
+        resolution=1.0,
+        min_mask_ratio=0.0,
+    )
+    extractor = extractors["T"]
+    assert len(extractor) > 0
+    patch = extractor[0]
+    if isinstance(patch, tuple):
+        patch = patch[0]
+    x0, y0, x1, y1 = extractor.coordinate_list[0]
+    expected = wsi.read_rect(
+        location=(x0, y0), size=(512, 512), resolution=1.0, units="mpp"
+    )
+    diff = np.abs(patch.astype("int16") - expected.astype("int16")).mean()
+    assert diff < 5
