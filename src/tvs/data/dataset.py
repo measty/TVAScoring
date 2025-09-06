@@ -1,16 +1,17 @@
 """PyTorch dataset wrapping class-specific patch extractors.
 
 This module provides :class:`PatchDataset` which combines several
-``SlidingWindowPatchExtractor`` instances—typically one per annotation class—into a
-single :class:`torch.utils.data.Dataset`.  Each extractor yields patches from a
+``SlidingWindowPatchExtractor`` instances—typically one per annotation class—into
+a single :class:`torch.utils.data.Dataset`. Each extractor yields patches from a
 specific class and the dataset exposes them with corresponding regression
 scores.
 
 The dataset expects a mapping of ``label -> extractor`` and a mapping of
-``label -> score``.  When indexed it returns a tuple ``(image, target)`` where
+``label -> score``. When indexed it returns a tuple ``(image, target)`` where
 ``image`` is a ``torch.Tensor`` and ``target`` is a float tensor containing the
-score associated with the patch's class.  Optional Albumentations transforms can
-be applied to the raw ``numpy`` images prior to tensor conversion.
+score associated with the patch's class. Optional transforms (Albumentations or
+torchvision) can be applied to the raw ``numpy`` images prior to tensor
+conversion.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ class PatchDataset(Dataset):
     label_scores:
         Mapping from class label to regression score (e.g. ``{"villous": 1.0}``).
     transform:
-        Optional Albumentations transform applied to the raw patch image.
+        Optional transform applied to the raw patch image.
     return_coords:
         If ``True`` the extractor's coordinates are returned in addition to the
         image and target.  This can be useful for debugging or visualization.
@@ -92,7 +93,10 @@ class PatchDataset(Dataset):
             img, coords = patch, None
 
         if self.transform is not None:
-            img = self.transform(image=img)["image"]
+            try:
+                img = self.transform(image=img)["image"]
+            except TypeError:
+                img = self.transform(img)
         else:
             # default conversion to tensor
             img = torch.from_numpy(np.asarray(img)).permute(2, 0, 1)
