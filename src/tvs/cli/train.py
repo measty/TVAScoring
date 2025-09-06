@@ -47,7 +47,8 @@ def _make_loader(
 
     slides: list[tuple[Path, str]] = []
     for slide_id, ann_path in entries:
-        wsi_path = Path(data_paths["slides"]) / f"{slide_id}.svs"
+        ext = dataset_cfg.get("slide_extension", "svs").lstrip(".")
+        wsi_path = Path(data_paths["slides"]) / f"{slide_id}.{ext}"
         slides.append((wsi_path, str(ann_path)))
 
     class_labels = list(dataset_cfg["class_map"].keys())
