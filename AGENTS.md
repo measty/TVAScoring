@@ -200,7 +200,7 @@ tubulovillous/
 * [x] 7 CNN baseline (small custom & ResNet-18)
 * [x] 8 Conch head
 * [x] 9 Training engine & CLI
-* [ ] 10 Evaluation & preview tools
+* [x] 10 Evaluation & preview tools
 * [ ] 11 Whole‑slide inference
 * [ ] 12 Unit tests: models/training/inference
 * [ ] 13 Docs & Cleanup
