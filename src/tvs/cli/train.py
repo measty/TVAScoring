@@ -44,16 +44,16 @@ def _make_loader(
     entries = _load_manifest(manifest)
     if not entries:
         raise ValueError("Manifest contains no entries")
-    if len(entries) > 1:
-        log.warning("Multiple slides listed; using only the first for now")
-    slide_id, ann_path = entries[0]
-    wsi_path = Path(data_paths["slides"]) / f"{slide_id}.svs"
+
+    slides: list[tuple[Path, str]] = []
+    for slide_id, ann_path in entries:
+        wsi_path = Path(data_paths["slides"]) / f"{slide_id}.svs"
+        slides.append((wsi_path, str(ann_path)))
 
     class_labels = list(dataset_cfg["class_map"].keys())
     filters = build_filters([lbl[0].upper() for lbl in class_labels])
     extractors = make_extractors(
-        wsi_path,
-        str(ann_path),
+        slides,
         filters,
         patch_size=dataset_cfg["patch_size"],
         stride=dataset_cfg.get("stride"),
