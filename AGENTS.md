@@ -184,7 +184,7 @@ tubulovillous/
 | **10** | **Evaluation & preview tools**            | `scripts/evaluate.py`, `src/tvs/cli/evaluate.py`, `scripts/preview_patches.py`, `src/tvs/cli/preview.py`, `src/tvs/viz/overlays.py`          | Metric computation; reliability plots; patch montages; score overlays.                                                                      |
 | **11** | **Whole‑slide inference**                 | `src/tvs/inference/tiler.py`, `src/tvs/inference/stitcher.py`, `src/tvs/inference/scorer.py`, `scripts/score_wsi.py`, `src/tvs/cli/score.py` | Dense scoring on tissue/annotations; write annotations store or stitch -> low res PNG overlays.                                                                 |
 | **12** | **Unit tests: models/training/inference** | `tests/test_models.py`, `tests/test_training.py`, `tests/test_inference.py`                                                                  | Forward pass shapes; overfit-a-batch test; tiling/stitching correctness.                                                                    |
-| **13** | **Docs & Cleanup**                        | `README.md`, `AGENTS.md`                                                                                                                     | Double-check repo for completeness/consistency. Add quick-start, examples, finalize notes.                                                                                                  |
+| **13** | **Docs & Cleanup**                        | `README.md`, `AGENTS.md`                                                                                                                     | Double-check repo for completeness/consistency. Add quick-start, examples, finalize notes.                                                                            |
 
 > **Tip:** After each task, add a brief ✓ entry under **AGENTS.md** so progress is explicit and new subtasks can be appended without losing context.
 
@@ -201,6 +201,6 @@ tubulovillous/
 * [x] 8 Conch head
 * [x] 9 Training engine & CLI
 * [x] 10 Evaluation & preview tools
-* [x] 11 Whole‑slide inference
-* [x] 12 Unit tests: models/training/inference
+* [ ] 11 Whole‑slide inference
+* [ ] 12 Unit tests: models/training/inference
 * [ ] 13 Docs & Cleanup
