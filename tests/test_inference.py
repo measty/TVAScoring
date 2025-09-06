@@ -70,3 +70,19 @@ def test_score_wsi_matches_manual(annotation_db, wsi_path):
     )
     assert heatmap.shape == expected.shape
     np.testing.assert_allclose(heatmap, expected, rtol=1e-6, atol=1e-6)
+
+
+def test_stitch_scores_with_overlap():
+    coords = [(0, 0, 4, 4), (2, 0, 4, 4)]
+    scores = [1.0, 3.0]
+    heatmap = stitch_scores(coords, scores, (4, 6))
+    expected = np.array(
+        [
+            [1, 1, 2, 2, 3, 3],
+            [1, 1, 2, 2, 3, 3],
+            [1, 1, 2, 2, 3, 3],
+            [1, 1, 2, 2, 3, 3],
+        ],
+        dtype=float,
+    )
+    np.testing.assert_array_equal(heatmap, expected)

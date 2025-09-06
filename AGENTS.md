@@ -202,5 +202,5 @@ tubulovillous/
 * [x] 9 Training engine & CLI
 * [x] 10 Evaluation & preview tools
 * [x] 11 Whole‑slide inference
-* [ ] 12 Unit tests: models/training/inference
+* [x] 12 Unit tests: models/training/inference
 * [ ] 13 Docs & Cleanup
