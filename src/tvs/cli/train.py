@@ -54,6 +54,7 @@ def _make_loader(
         filters,
         patch_size=dataset_cfg["patch_size"],
         stride=dataset_cfg.get("stride"),
+        resolution=dataset_cfg.get("resolution", 0.5),
         min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
     )
     dataset = PatchDataset(extractors, dataset_cfg["class_map"])
