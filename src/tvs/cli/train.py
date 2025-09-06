@@ -13,6 +13,7 @@ import yaml
 from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
 from ..data.samplers import BalancedSampler
+from ..data.transforms import build_transforms
 from ..models import make_model
 from ..training import Trainer, get_loss
 
@@ -37,6 +38,8 @@ def _make_loader(
     data_paths: dict,
     batch_size: int,
     num_workers: int,
+    *,
+    train: bool,
 ) -> torch.utils.data.DataLoader:
     entries = _load_manifest(manifest)
     if not entries:
@@ -57,7 +60,10 @@ def _make_loader(
         resolution=dataset_cfg.get("resolution", 0.5),
         min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
     )
-    dataset = PatchDataset(extractors, dataset_cfg["class_map"])
+    transform = build_transforms(
+        train=train, augmentation=dataset_cfg.get("augmentation", {}).get("name")
+    )
+    dataset = PatchDataset(extractors, dataset_cfg["class_map"], transform=transform)
     sampler = BalancedSampler(dataset)
     return torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers
@@ -114,6 +120,7 @@ def main(args: list[str] | None = None) -> None:
         data_paths,
         batch_size=train_cfg.get("batch_size", 32),
         num_workers=train_cfg.get("num_workers", 0),
+        train=True,
     )
     val_loader = _make_loader(
         ns.val_manifest,
@@ -121,6 +128,7 @@ def main(args: list[str] | None = None) -> None:
         data_paths,
         batch_size=train_cfg.get("batch_size", 32),
         num_workers=train_cfg.get("num_workers", 0),
+        train=False,
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

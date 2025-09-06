@@ -205,3 +205,4 @@ tubulovillous/
 * [x] 11 Whole‑slide inference
 * [x] 12 Unit tests: models/training/inference
 * [x] 13 Docs & Cleanup — README quick-start added; repo consistency verified
+* [x] Strong augmentation config propagated to training CLI
