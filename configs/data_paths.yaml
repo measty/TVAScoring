@@ -1,4 +1,4 @@
-slides: /path/to/slides
-annotations: /path/to/annotations
-cache: /path/to/cache
-outputs: /path/to/outputs
+slides: E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
+annotations: E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
+cache: E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
+outputs: E:\HIMICO\leuven_new\TVA_anns\outputs
