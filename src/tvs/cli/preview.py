@@ -14,6 +14,7 @@ import yaml
 
 from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
+from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
 
 log = logging.getLogger(__name__)
 
@@ -36,10 +37,13 @@ def _load_dataset(manifest: Path, dataset_cfg: dict, data_paths: dict) -> PatchD
     if not entries:
         raise ValueError("Manifest contains no entries")
 
+    slide_dirs, ann_dirs = parse_data_paths(data_paths)
+
     slides: list[tuple[Path, str]] = []
     for slide_id, ann_path in entries:
         ext = dataset_cfg.get("slide_extension", "svs").lstrip(".")
-        wsi_path = Path(data_paths["slides"]) / f"{slide_id}.{ext}"
+        wsi_path = find_slide_path(slide_id, slide_dirs, ext)
+        ann_path = resolve_annotation_path(ann_path, ann_dirs)
         slides.append((wsi_path, str(ann_path)))
 
     class_labels = list(dataset_cfg["class_map"].keys())

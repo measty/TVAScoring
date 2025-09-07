@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 
 # ---------------------------------------------------------------------------
 # TIAToolbox uses SQLite with SpatiaLite for persistent annotation storage.
@@ -146,7 +146,7 @@ def geojson_to_sqlite(
 
 
 def prepare_annotations(
-    source_dir: Path,
+    source_dirs: Sequence[Path] | Path,
     dest_dir: Path,
     *,
     class_key: str = "name",
@@ -156,8 +156,8 @@ def prepare_annotations(
 
     Parameters
     ----------
-    source_dir:
-        Directory containing one or more ``.geojson`` files.
+    source_dirs:
+        One or more directories containing ``.geojson`` files.
     dest_dir:
         Directory to write the ``.db`` files into.  Will be created if it
         does not already exist.
@@ -173,18 +173,23 @@ def prepare_annotations(
         per-class statistics dictionaries.
     """
 
-    source_dir = Path(source_dir)
+    if isinstance(source_dirs, (str, Path)):
+        dirs = [Path(source_dirs)]
+    else:
+        dirs = [Path(p) for p in source_dirs]
+
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     stats_per_slide: Dict[str, Dict[str, Dict[str, float]]] = {}
-    for geojson_path in sorted(source_dir.glob("*.geojson")):
-        slide_id = geojson_path.stem
-        db_path = dest_dir / f"{slide_id}.db"
-        stats_per_slide[slide_id] = geojson_to_sqlite(
-            geojson_path,
-            db_path,
-            class_key=class_key,
-            cache=cache,
-        )
+    for directory in dirs:
+        for geojson_path in sorted(directory.glob("*.geojson")):
+            slide_id = geojson_path.stem
+            db_path = dest_dir / f"{slide_id}.db"
+            stats_per_slide[slide_id] = geojson_to_sqlite(
+                geojson_path,
+                db_path,
+                class_key=class_key,
+                cache=cache,
+            )
     return stats_per_slide

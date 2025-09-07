@@ -1,4 +1,8 @@
-slides: /path/to/slides
-annotations: /path/to/annotations
+slides:
+  - /path/to/slides1
+  - /path/to/slides2
+annotations:
+  - /path/to/annotations1
+  - /path/to/annotations2
 cache: /path/to/cache
 outputs: /path/to/outputs
