@@ -15,7 +15,7 @@ pip install -e .
    Convert QuPath-exported GeoJSON files to SQLite stores for fast access:
 
    ```bash
-   tvs-prepare-annotations path/to/geojson/ path/to/annotations/
+   tvs-prepare-annotations --data-paths configs/data_paths.yaml
    ```
 
 2. **Create train/val/test splits**

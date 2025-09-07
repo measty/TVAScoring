@@ -1,6 +1,9 @@
 import csv
 import shutil
 
+import yaml
+
+from tvs.cli.prepare_annotations import main as prepare_main
 from tvs.cli.preview import _load_dataset
 
 
@@ -27,3 +30,18 @@ def test_load_dataset_respects_slide_extension(tmp_path, annotation_db, test_dat
 
     dataset = _load_dataset(manifest, dataset_cfg, data_paths)
     assert len(dataset) > 0
+
+
+def test_prepare_annotations_uses_data_paths(tmp_path, test_data_dir):
+    ann_dir = tmp_path / "annotations"
+    ann_dir.mkdir()
+    shutil.copy(test_data_dir / "test_slide.geojson", ann_dir / "test_slide.geojson")
+
+    data_paths = tmp_path / "data_paths.yaml"
+    cache_dir = tmp_path / "cache"
+    with data_paths.open("w") as f:
+        yaml.safe_dump({"annotations": [str(ann_dir)], "cache": str(cache_dir)}, f)
+
+    prepare_main(["--data-paths", str(data_paths)])
+
+    assert (cache_dir / "test_slide.db").exists()
