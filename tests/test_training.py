@@ -76,3 +76,56 @@ def test_trainer_overfits_small_batch():
         preds = model(x)
         mse = torch.nn.functional.mse_loss(preds, y)
     assert mse.item() < 1e-4
+
+
+def _make_dummy_model():
+    class DummyModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.stem = torch.nn.Sequential(
+                torch.nn.Flatten(),
+                torch.nn.Linear(3 * 4 * 4, 8),
+                torch.nn.ReLU(),
+            )
+            self.backbone = torch.nn.Linear(8, 8)
+            self.head = torch.nn.Linear(8, 1)
+            self.act = torch.nn.Tanh()
+            for p in self.backbone.parameters():
+                p.requires_grad = False
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x = self.stem(x)
+            x = self.backbone(x)
+            x = self.head(x)
+            x = self.act(x)
+            return x
+
+    return DummyModel()
+
+
+def test_trainer_unfreezes_backbone(tmp_path):
+    x = torch.randn(16, 3, 4, 4)
+    y = torch.randn(16, 1)
+    ds = TensorDataset(x, y)
+    loader = DataLoader(ds, batch_size=4)
+    model = _make_dummy_model()
+    init_params = [p.clone() for p in model.backbone.parameters()]
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    trainer = Trainer(
+        model,
+        optimizer,
+        torch.nn.MSELoss(),
+        torch.device("cpu"),
+        unfreeze_at_epoch=2,
+        unfreeze_params=model.backbone.parameters(),
+        output_dir=tmp_path,
+    )
+    trainer.fit(loader, loader, epochs=1)
+    for p, init in zip(model.backbone.parameters(), init_params):
+        assert torch.allclose(p, init)
+    trainer.fit(loader, loader, epochs=2)
+    changed = any(
+        not torch.allclose(p, init)
+        for p, init in zip(model.backbone.parameters(), init_params)
+    )
+    assert changed

@@ -32,4 +32,5 @@ tvs-preview = "tvs.cli.preview:main"
 tvs-train = "tvs.cli.train:main"
 tvs-evaluate = "tvs.cli.evaluate:main"
 tvs-score = "tvs.cli.score:main"
+tvs-test = "tvs.cli.test:main"
 

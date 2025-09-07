@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 import torch
 from rich.console import Console
@@ -40,6 +40,11 @@ class Trainer:
         stops early.
     output_dir:
         Directory in which to save ``last.pt`` and ``best.pt`` checkpoints.
+    unfreeze_at_epoch:
+        If provided, backbone parameters in ``unfreeze_params`` remain frozen
+        until this epoch and are unfrozen thereafter.
+    unfreeze_params:
+        Iterable of parameters to unfreeze at ``unfreeze_at_epoch``.
     """
 
     def __init__(
@@ -54,6 +59,8 @@ class Trainer:
         precision: str = "fp32",
         early_stopping_patience: Optional[int] = None,
         output_dir: Optional[Path] = None,
+        unfreeze_at_epoch: Optional[int] = None,
+        unfreeze_params: Optional[Iterable[torch.nn.Parameter]] = None,
     ) -> None:
         self.model = model
         self.optimizer = optimizer
@@ -64,6 +71,11 @@ class Trainer:
         self.precision = precision
         self.early_stopping_patience = early_stopping_patience
         self.output_dir = Path(output_dir) if output_dir else None
+        self.unfreeze_at_epoch = unfreeze_at_epoch
+        self.unfreeze_params = (
+            list(unfreeze_params) if unfreeze_params is not None else None
+        )
+        self._backbone_unfrozen = False
 
         self.console = Console()
         self.scaler = (
@@ -139,6 +151,15 @@ class Trainer:
         if self.output_dir is not None:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         for epoch in range(1, epochs + 1):
+            if (
+                self.unfreeze_at_epoch is not None
+                and not self._backbone_unfrozen
+                and epoch == self.unfreeze_at_epoch
+            ):
+                if self.unfreeze_params is not None:
+                    for p in self.unfreeze_params:
+                        p.requires_grad = True
+                self._backbone_unfrozen = True
             self.console.rule(f"Epoch {epoch}")
             train_metrics = self._run_epoch(train_loader, train=True)
             val_metrics = self._run_epoch(val_loader, train=False)
