@@ -14,6 +14,7 @@ from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
 from ..data.samplers import BalancedSampler
 from ..data.transforms import build_transforms
+from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
 from ..models import make_model
 from ..training import Trainer, get_loss
 
@@ -44,16 +45,20 @@ def _make_loader(
     entries = _load_manifest(manifest)
     if not entries:
         raise ValueError("Manifest contains no entries")
-    if len(entries) > 1:
-        log.warning("Multiple slides listed; using only the first for now")
-    slide_id, ann_path = entries[0]
-    wsi_path = Path(data_paths["slides"]) / f"{slide_id}.svs"
+
+    slide_dirs, ann_dirs = parse_data_paths(data_paths)
+
+    slides: list[tuple[Path, str]] = []
+    for slide_id, ann_path in entries:
+        ext = dataset_cfg.get("slide_extension", "svs").lstrip(".")
+        wsi_path = find_slide_path(slide_id, slide_dirs, ext)
+        ann_path = resolve_annotation_path(ann_path, ann_dirs)
+        slides.append((wsi_path, str(ann_path)))
 
     class_labels = list(dataset_cfg["class_map"].keys())
     filters = build_filters([lbl[0].upper() for lbl in class_labels])
     extractors = make_extractors(
-        wsi_path,
-        str(ann_path),
+        slides,
         filters,
         patch_size=dataset_cfg["patch_size"],
         stride=dataset_cfg.get("stride"),

@@ -19,15 +19,18 @@ def test_extractors_patch_coverage(annotation_db, extractors):
     finally:
         store.close()
 
-    for label, extractor in extractors.items():
-        assert len(extractor) > 0
+    for label, ex_list in extractors.items():
+        assert ex_list
         polys = class_polys[label]
-        for x, y, w, h in extractor.coordinate_list:  # type: ignore[attr-defined]
-            patch_poly = box(x, y, x + w, y + h)
-            max_cov = max(
-                patch_poly.intersection(poly).area / patch_poly.area for poly in polys
-            )
-            assert max_cov > 0  # patch overlaps annotation
+        for extractor in ex_list:
+            assert len(extractor) > 0
+            for x, y, w, h in extractor.coordinate_list:  # type: ignore[attr-defined]
+                patch_poly = box(x, y, x + w, y + h)
+                max_cov = max(
+                    patch_poly.intersection(poly).area / patch_poly.area
+                    for poly in polys
+                )
+                assert max_cov > 0  # patch overlaps annotation
 
 
 def test_make_extractors_respects_resolution(annotation_db, wsi_path):
@@ -35,15 +38,14 @@ def test_make_extractors_respects_resolution(annotation_db, wsi_path):
     wsi = WSIReader.open(wsi_path)
     filters = build_filters(["T"])
     extractors = make_extractors(
-        wsi,
-        str(db_path),
+        [(wsi, str(db_path))],
         filters,
         patch_size=512,
         stride=512,
         resolution=1.0,
         min_mask_ratio=0.0,
     )
-    extractor = extractors["T"]
+    extractor = extractors["T"][0]
     assert len(extractor) > 0
     patch = extractor[0]
     if isinstance(patch, tuple):

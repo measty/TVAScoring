@@ -1,4 +1,10 @@
-slides: E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
-annotations: E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
-cache: E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
+slides:
+  - E:\HIMICO\leuven_new\TVA_anns\TVA\TA
+  - E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
+  - E:\HIMICO\leuven_new\TVA_anns\TVA\TVA
+annotations:
+  - E:\HIMICO\leuven_new\TVA_anns\TVA\TA
+  - E:\HIMICO\leuven_new\TVA_anns\TVA\TA-TVA
+  - E:\HIMICO\leuven_new\TVA_anns\TVA\TVA
+cache: E:\HIMICO\leuven_new\TVA_anns\db_cache
 outputs: E:\HIMICO\leuven_new\TVA_anns\outputs

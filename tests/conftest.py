@@ -39,8 +39,7 @@ def extractors(annotation_db, wsi_path):
     db_path, _ = annotation_db
     filters = build_filters(["T", "V"])
     return make_extractors(
-        wsi_path,
-        str(db_path),
+        [(wsi_path, str(db_path))],
         filters,
         patch_size=512,
         stride=512,

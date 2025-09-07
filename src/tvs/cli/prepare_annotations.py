@@ -20,13 +20,16 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "source",
+        "--source",
         type=Path,
-        help="Directory containing QuPath-exported .geojson files.",
+        nargs="+",
+        required=True,
+        help="One or more directories containing QuPath-exported .geojson files.",
     )
     parser.add_argument(
-        "dest",
+        "--dest",
         type=Path,
+        required=True,
         help="Destination directory for the generated .db files.",
     )
     parser.add_argument(

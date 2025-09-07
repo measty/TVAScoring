@@ -11,7 +11,7 @@ the target class.  Common parameters such as ``stride`` and
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Iterable, Mapping
+from typing import Callable, Iterable, Mapping, Sequence
 
 import tiatoolbox.tools.patchextraction as patchextraction
 from tiatoolbox.wsicore.wsireader import WSIReader
@@ -49,8 +49,7 @@ def build_filters(
 
 
 def make_extractors(
-    wsi: WSIReader | str | Path,
-    store_path: str,
+    slides: Sequence[tuple[WSIReader | str | Path, str]],
     class_filters: Mapping[str, Callable[[dict[str, str]], bool]],
     *,
     patch_size: int,
@@ -59,16 +58,15 @@ def make_extractors(
     min_mask_ratio: float = 0.5,
     pad_mode: str = "constant",
     pad_constant_values: int = 0,
-) -> dict[str, patchextraction.SlidingWindowPatchExtractor]:
-    """Create a ``SlidingWindowPatchExtractor`` for each class filter.
+) -> dict[str, list[patchextraction.SlidingWindowPatchExtractor]]:
+    """Create patch extractors for multiple slides and classes.
 
     Parameters
     ----------
-    wsi:
-        Whole-slide image as a :class:`WSIReader` or a path to one.  If a path
-        is supplied it is opened via :func:`WSIReader.open`.
-    store_path:
-        Path to annotation store .db file restricting sampling locations.
+    slides:
+        Sequence of ``(wsi, store_path)`` pairs where ``wsi`` is either a
+        :class:`WSIReader` or a path to one and ``store_path`` is the associated
+        annotation store database.
     class_filters:
         Mapping from class label to a ``store_filter`` callable selecting
         annotations of that class.
@@ -90,28 +88,38 @@ def make_extractors(
     Returns
     -------
     dict
-        Mapping of class label to configured
-        :class:`SlidingWindowPatchExtractor` instances.
+        Mapping of class label to a list of configured
+        :class:`SlidingWindowPatchExtractor` instances—one per slide.
     """
 
-    if not isinstance(wsi, WSIReader):
-        wsi = WSIReader.open(wsi)
     if stride is None:
         stride = patch_size
 
-    extractors: dict[str, patchextraction.SlidingWindowPatchExtractor] = {}
-    for label, store_filter in class_filters.items():
-        extractors[label] = patchextraction.SlidingWindowPatchExtractor(
-            input_img=wsi,
-            input_mask=store_path,
-            patch_size=patch_size,
-            stride=stride,
-            within_bound=False,
-            pad_mode=pad_mode,
-            pad_constant_values=pad_constant_values,
-            min_mask_ratio=min_mask_ratio,
-            store_filter=store_filter,
-            resolution=resolution,
-            units="mpp",
-        )
+    extractors: dict[str, list[patchextraction.SlidingWindowPatchExtractor]] = {
+        label: [] for label in class_filters
+    }
+
+    for wsi, store_path in slides:
+        if not isinstance(wsi, WSIReader):
+            wsi_reader = WSIReader.open(wsi)
+        else:
+            wsi_reader = wsi
+
+        for label, store_filter in class_filters.items():
+            extractors[label].append(
+                patchextraction.SlidingWindowPatchExtractor(
+                    input_img=wsi_reader,
+                    input_mask=store_path,
+                    patch_size=patch_size,
+                    stride=stride,
+                    within_bound=False,
+                    pad_mode=pad_mode,
+                    pad_constant_values=pad_constant_values,
+                    min_mask_ratio=min_mask_ratio,
+                    store_filter=store_filter,
+                    resolution=resolution,
+                    units="mpp",
+                )
+            )
+
     return extractors
