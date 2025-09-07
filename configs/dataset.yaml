@@ -1,12 +1,11 @@
-patch_size: 512
-stride: 256
-resolution: 1.0
+patch_size: 224
+stride: 112
+resolution: 2.0
 units: mpp
-slide_extension: svs
+slide_extension: ndpi
 min_mask_ratio: 0.5
 class_map:
-  tubular: -1.0
-  villous: 1.0
-  tubulovillous: 0.0
+  T: -1.0
+  V: 1.0
 augmentation:
   name: strong

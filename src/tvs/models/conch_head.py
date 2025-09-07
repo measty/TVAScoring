@@ -19,9 +19,7 @@ import torch
 from torch import nn
 
 try:  # pragma: no cover - optional dependency
-    import conch.open_clip_custom.factory as conch_factory
-    from conch.open_clip_custom.coca_model import CoCa
-    from conch.open_clip_custom.factory import create_model as conch_create_model
+    from conch.open_clip_custom import create_model_from_pretrained, CoCa
 except Exception as exc:  # pragma: no cover - explicit failure if CONCH missing
     raise ImportError(
         "CONCH is required for ConchHead. Install via "
@@ -80,15 +78,14 @@ class ConchHead(nn.Module):
     Parameters
     ----------
     checkpoint_path:
-        Optional path to pretrained CONCH weights.  If ``None`` the
-        backbone is randomly initialised.
+        Path to pretrained CONCH weights.
     finetune_backbone:
         If ``True`` the CONCH backbone is left trainable, otherwise it is
         frozen and only the regression head learns.
     head_type:
         Choice of regression head: ``"mlp"`` or ``"transformer"``.
     image_size:
-        Input spatial size expected by the backbone.  Defaults to ``448``
+        Input spatial size expected by the backbone.  Defaults to ``224``
         (the native CONCH resolution).  Smaller values can be specified
         for testing purposes.
     """
@@ -96,10 +93,10 @@ class ConchHead(nn.Module):
     def __init__(
         self,
         *,
-        checkpoint_path: Optional[str] = None,
+        checkpoint_path: str = None,
         finetune_backbone: bool = False,
         head_type: str = "mlp",
-        image_size: int = 448,
+        image_size: int = 224,
     ) -> None:
         super().__init__()
         self.backbone = self._build_backbone(checkpoint_path, image_size)
@@ -118,22 +115,14 @@ class ConchHead(nn.Module):
             raise ValueError(f"Unknown head_type '{head_type}'")
 
     @staticmethod
-    def _build_backbone(checkpoint_path: Optional[str], image_size: int) -> CoCa:
-        """Construct CONCH backbone, optionally loading weights."""
-        if checkpoint_path:
-            return conch_create_model(
-                "conch_ViT-B-16",
-                checkpoint_path=checkpoint_path,
-                device="cpu",
-                force_image_size=image_size,
-            )
-
-        cfg_dir = Path(conch_factory.__file__).parent / "model_configs"
-        with open(cfg_dir / "conch_ViT-B-16.json") as f:
-            cfg = json.load(f)
-        cfg["vision_cfg"]["image_size"] = image_size
-        cfg.pop("custom_text", None)
-        model = CoCa(**cfg)
+    def _build_backbone(checkpoint_path: str, image_size: int) -> CoCa:
+        """Construct CONCH backbone, and load weights."""
+        model, _ = create_model_from_pretrained(
+            "conch_ViT-B-16",
+            checkpoint_path=checkpoint_path,
+            device="cpu",
+            force_image_size=image_size,
+        )
         return model
 
     # ------------------------------------------------------------------

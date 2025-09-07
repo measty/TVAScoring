@@ -1,14 +1,15 @@
 model:
-  backbone_weights: /path/to/conch_weights.pth
-  head_type: linear
-  finetune: frozen
-output_dir: /path/to/output/conch
+  name: conch_head
+  checkpoint_path: E:\HIMICO\leuven_new\TVA_anns\conch_model.bin
+  head_type: mlp
+  finetune_backbone: False
+output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\conch_model
 epochs: 50
 batch_size: 32
 learning_rate: 0.0005
 weight_decay: 0.0001
 optimizer: adamw
 scheduler: cosine
-num_workers: 8
+num_workers: 0
 precision: fp16
-early_stopping_patience: 10
+early_stopping_patience: 6
