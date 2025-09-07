@@ -114,6 +114,15 @@ def main(args: list[str] | None = None) -> None:
     dataset_cfg = yaml.safe_load(ns.dataset_config.read_text())
     data_paths = yaml.safe_load(ns.data_paths.read_text())
 
+    finetune_backbone = train_cfg.get("model", {}).get("finetune_backbone", False)
+    unfreeze_epoch = None
+    if isinstance(finetune_backbone, int):
+        if finetune_backbone <= 0:
+            train_cfg["model"]["finetune_backbone"] = True
+        else:
+            unfreeze_epoch = finetune_backbone
+            train_cfg["model"]["finetune_backbone"] = False
+
     output_dir = Path(train_cfg.get("output_dir", "outputs"))
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "train.yaml").write_text(yaml.safe_dump(train_cfg))
@@ -138,6 +147,11 @@ def main(args: list[str] | None = None) -> None:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = make_model(train_cfg["model"]).to(device)
+    unfreeze_params = (
+        model.backbone.parameters()
+        if unfreeze_epoch is not None and hasattr(model, "backbone")
+        else None
+    )
     optimizer_cls = {
         "adam": torch.optim.Adam,
         "adamw": torch.optim.AdamW,
@@ -164,6 +178,8 @@ def main(args: list[str] | None = None) -> None:
         precision=train_cfg.get("precision", "fp32"),
         early_stopping_patience=train_cfg.get("early_stopping_patience"),
         output_dir=output_dir,
+        unfreeze_at_epoch=unfreeze_epoch,
+        unfreeze_params=unfreeze_params,
     )
     trainer.fit(
         train_loader,
