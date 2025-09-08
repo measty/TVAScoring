@@ -13,7 +13,7 @@ __all__ = ["tile_wsi"]
 def tile_wsi(
     wsi: WSIReader | str,
     *,
-    annotation_store: str | None = None,
+    masker: str | None = None,
     patch_size: int,
     stride: int | None = None,
     min_mask_ratio: float = 0.5,
@@ -27,8 +27,10 @@ def tile_wsi(
     wsi:
         Whole-slide image or a path to one. If a path is provided it is opened
         via :func:`WSIReader.open`.
-    annotation_store:
-        Optional path to an annotation store restricting patch locations.
+    masker:
+        Optional masking strategy restricting patch locations. Can be an
+        annotation store path, ``None`` for no restriction, or ``"otsu"`` to
+        generate a tissue mask on-the-fly.
     patch_size:
         Size of patches to extract in pixels.
     stride:
@@ -55,7 +57,7 @@ def tile_wsi(
 
     extractor = patchextraction.SlidingWindowPatchExtractor(
         input_img=wsi,
-        input_mask=annotation_store,
+        input_mask=masker,
         patch_size=patch_size,
         stride=stride,
         within_bound=False,

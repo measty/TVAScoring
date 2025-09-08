@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
+from matplotlib import cm
 from PIL import Image
 
 from ..inference import score_wsi
@@ -38,13 +39,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--annotation-db",
         type=Path,
-        help="Annotation store restricting inference",
+        help="Annotation store used when ``--restrict-inference annotations`` is set",
     )
     parser.add_argument(
         "--data-paths",
         type=Path,
         default=Path("configs/data_paths.yaml"),
         help="Data paths configuration YAML",
+    )
+    parser.add_argument(
+        "--restrict-inference",
+        choices=["annotations", "none", "tissue"],
+        default="tissue",
+        help=(
+            "Restrict inference to annotations, perform no restriction, or use an "
+            "on-the-fly tissue mask"
+        ),
     )
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument(
@@ -73,17 +83,23 @@ def _score_and_save(
     wsi: Path,
     output_path: Path,
     *,
-    annotation_db: Path | None,
+    masker: Path | str | None,
     batch_size: int,
     heatmap_mpp: float,
     dataset_cfg: dict,
 ) -> None:
     """Run scoring for a single slide and write the PNG output."""
 
+    masker_arg: str | None
+    if masker in (None, "otsu"):
+        masker_arg = masker
+    else:
+        masker_arg = str(masker)
+
     heatmap = score_wsi(
         model,
         wsi,
-        annotation_db and str(annotation_db),
+        masker_arg,
         patch_size=dataset_cfg["patch_size"],
         stride=dataset_cfg.get("stride"),
         batch_size=batch_size,
@@ -92,7 +108,9 @@ def _score_and_save(
         heatmap_mpp=heatmap_mpp,
     )
 
-    img = ((heatmap + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+    cmap = cm.get_cmap("coolwarm")
+    img = cmap((heatmap + 1) / 2)[..., :3]
+    img = (img * 255).astype(np.uint8)
     Image.fromarray(img).save(output_path)
 
 
@@ -128,26 +146,42 @@ def main(args: list[str] | None = None) -> None:
                 parser.error("Manifest must contain 'slide_id' and 'path' columns")
             for row in reader:
                 slide_id = row["slide_id"]
-                ann_path = resolve_annotation_path(Path(row["path"]), ann_dirs)
                 ext = dataset_cfg.get("slide_extension", "svs").lstrip(".")
                 wsi_path = find_slide_path(slide_id, slide_dirs, ext)
+                if ns.restrict_inference == "annotations":
+                    ann_path = resolve_annotation_path(Path(row["path"]), ann_dirs)
+                    masker: Path | str | None = ann_path
+                elif ns.restrict_inference == "tissue":
+                    masker = "otsu"
+                else:
+                    masker = None
                 log.info("Scoring %s", slide_id)
                 _score_and_save(
                     model,
                     wsi_path,
                     output_dir / f"{slide_id}.png",
-                    annotation_db=ann_path,
+                    masker=masker,
                     batch_size=ns.batch_size,
                     heatmap_mpp=ns.heatmap_mpp,
                     dataset_cfg=dataset_cfg,
                 )
     else:
         # Single-slide scoring
+        if ns.restrict_inference == "annotations":
+            if ns.annotation_db is None:
+                parser.error(
+                    "--annotation-db is required when --restrict-inference annotations"
+                )
+            masker: Path | str | None = ns.annotation_db
+        elif ns.restrict_inference == "tissue":
+            masker = "otsu"
+        else:
+            masker = None
         _score_and_save(
             model,
             ns.input,
             ns.output,
-            annotation_db=ns.annotation_db,
+            masker=masker,
             batch_size=ns.batch_size,
             heatmap_mpp=ns.heatmap_mpp,
             dataset_cfg=dataset_cfg,

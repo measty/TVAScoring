@@ -16,7 +16,7 @@ def test_tiler_outputs(annotation_db, wsi_path):
     patches = list(
         tile_wsi(
             wsi_path,
-            annotation_store=str(db_path),
+            masker=str(db_path),
             patch_size=512,
             stride=512,
             min_mask_ratio=0.0,
@@ -40,7 +40,7 @@ def test_score_wsi_matches_manual(annotation_db, wsi_path):
     patches = []
     for coord, patch in tile_wsi(
         wsi,
-        annotation_store=str(db_path),
+        masker=str(db_path),
         patch_size=512,
         stride=512,
         min_mask_ratio=0.0,
@@ -59,7 +59,7 @@ def test_score_wsi_matches_manual(annotation_db, wsi_path):
     heatmap = score_wsi(
         model,
         wsi,
-        str(db_path),
+        masker=str(db_path),
         patch_size=512,
         stride=512,
         batch_size=4,

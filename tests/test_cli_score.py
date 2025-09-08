@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
+from matplotlib import cm
 from PIL import Image
 
 from tvs.cli import score
@@ -54,6 +55,8 @@ def test_cli_score_manifest(tmp_path: Path, wsi_path: Path, annotation_db) -> No
         [
             str(manifest),
             str(model_path),
+            "--restrict-inference",
+            "annotations",
             "--data-paths",
             str(data_paths_cfg),
             "--output-dir",
@@ -68,7 +71,7 @@ def test_cli_score_manifest(tmp_path: Path, wsi_path: Path, annotation_db) -> No
     expected = score_wsi(
         model,
         wsi_path,
-        str(db_path),
+        masker=str(db_path),
         patch_size=512,
         stride=512,
         batch_size=16,
@@ -76,6 +79,7 @@ def test_cli_score_manifest(tmp_path: Path, wsi_path: Path, annotation_db) -> No
         units="mpp",
         heatmap_mpp=6.0,
     )
-    expected_img = ((expected + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+    cmap = cm.get_cmap("coolwarm")
+    expected_img = (cmap((expected + 1) / 2)[..., :3] * 255).astype(np.uint8)
     img = np.array(Image.open(out_file))
     np.testing.assert_array_equal(img, expected_img)
