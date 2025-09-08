@@ -1,3 +1,5 @@
+import random
+
 import torch
 
 from tvs.data.dataset import PatchDataset
@@ -8,7 +10,14 @@ def test_build_transforms_strong_contains_components():
     tfms = build_transforms(train=True, augmentation="strong")
     names = [type(t).__name__ for t in tfms.transforms]
     assert names[0] == "StrongAugment"
-    assert any(isinstance(t, BasicAugment) for t in tfms.transforms)
+    ba = next(t for t in tfms.transforms if isinstance(t, BasicAugment))
+    assert ba.jitter is False
+
+
+def test_build_transforms_basic_enables_jitter():
+    tfms = build_transforms(train=True, augmentation="basic")
+    ba = next(t for t in tfms.transforms if isinstance(t, BasicAugment))
+    assert ba.jitter is True
 
 
 def test_build_transforms_validation_no_augment():
@@ -24,3 +33,14 @@ def test_patch_dataset_with_strong_aug(extractors):
     img, target = dataset[0]
     assert isinstance(img, torch.Tensor)
     assert img.shape[1] == img.shape[2] == 512
+
+
+def test_basic_augment_jitter_changes_colors():
+    img = torch.full((3, 4, 4), 0.5)
+    random.seed(0)
+    torch.manual_seed(0)
+    with_jitter = BasicAugment(jitter=True)(img.clone())
+    random.seed(0)
+    torch.manual_seed(0)
+    no_jitter = BasicAugment(jitter=False)(img.clone())
+    assert not torch.allclose(with_jitter, no_jitter)
