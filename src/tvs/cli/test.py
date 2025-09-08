@@ -15,6 +15,7 @@ from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
 from ..data.transforms import build_transforms
 from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
+from ..models import make_model
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("manifest", type=Path, help="CSV manifest of test slides")
-    parser.add_argument("model", type=Path, help="TorchScript model for inference")
+    parser.add_argument(
+        "model",
+        type=Path,
+        help="Model checkpoint (e.g., best.pt) saved by the training engine",
+    )
     parser.add_argument(
         "--dataset-config",
         type=Path,
@@ -113,7 +118,14 @@ def main(args: List[str] | None = None) -> None:
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = torch.jit.load(str(ns.model)).to(device).eval()
+    ckpt = torch.load(ns.model, map_location=device)
+    cfg_path = ns.model.parent / "train.yaml"
+    if not cfg_path.exists():
+        parser.error(f"Missing train.yaml next to {ns.model}")
+    train_cfg = yaml.safe_load(cfg_path.read_text())
+    model = make_model(train_cfg["model"]).to(device)
+    model.load_state_dict(ckpt["model"])
+    model.eval()
 
     preds: List[float] = []
     targets: List[float] = []

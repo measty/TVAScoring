@@ -10,11 +10,7 @@ from PIL import Image
 
 from tvs.cli import score
 from tvs.inference import score_wsi
-
-
-class ZeroModel(torch.nn.Module):
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
-        return torch.zeros((x.shape[0],), device=x.device)
+from tvs.models import make_model
 
 
 def test_cli_score_manifest(tmp_path: Path, wsi_path: Path, annotation_db) -> None:
@@ -22,10 +18,13 @@ def test_cli_score_manifest(tmp_path: Path, wsi_path: Path, annotation_db) -> No
 
     db_path, _ = annotation_db
 
-    # Save TorchScript model and its dataset config
-    model = torch.jit.script(ZeroModel())
-    model_path = tmp_path / "model.ts"
-    model.save(str(model_path))
+    # Save model checkpoint and its dataset config
+    model = make_model({"name": "cnn_baseline"})
+    model_path = tmp_path / "model.pt"
+    torch.save({"model": model.state_dict()}, model_path)
+    (model_path.parent / "train.yaml").write_text(
+        yaml.safe_dump({"model": {"name": "cnn_baseline"}})
+    )
     dataset_cfg = {
         "patch_size": 512,
         "stride": 512,
@@ -67,7 +66,7 @@ def test_cli_score_manifest(tmp_path: Path, wsi_path: Path, annotation_db) -> No
 
     # Compare against direct score_wsi call
     expected = score_wsi(
-        ZeroModel(),
+        model,
         wsi_path,
         str(db_path),
         patch_size=512,
