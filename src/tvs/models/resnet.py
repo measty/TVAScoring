@@ -24,15 +24,15 @@ class ResNet18Baseline(nn.Module):
     ----------
     pretrained:
         If ``True`` (default), load ImageNet pretrained weights.
-    freeze_backbone:
-        If ``True``, freeze backbone parameters. Defaults to ``False``.
+    finetune_backbone:
+        If ``True``, trains backbone parameters. Defaults to ``True``.
     """
 
     def __init__(
         self,
         *,
         pretrained: bool = True,
-        freeze_backbone: bool = False,
+        finetune_backbone: bool = True,
     ) -> None:
         super().__init__()
         weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
@@ -44,7 +44,7 @@ class ResNet18Baseline(nn.Module):
             nn.Linear(in_features, 1),
             nn.Tanh(),
         )
-        if freeze_backbone:
+        if not finetune_backbone:
             for param in self.backbone.parameters():
                 param.requires_grad_(False)
 
