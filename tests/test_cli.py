@@ -7,11 +7,7 @@ import yaml
 from tvs.cli.prepare_annotations import main as prepare_main
 from tvs.cli.preview import _load_dataset
 from tvs.cli.test import main as run_test_cli
-
-
-class MeanModel(torch.nn.Module):
-    def forward(self, x):  # type: ignore[override]
-        return x.mean(dim=(1, 2, 3))
+from tvs.models import make_model
 
 
 def test_load_dataset_respects_slide_extension(tmp_path, annotation_db, test_data_dir):
@@ -79,9 +75,12 @@ def test_test_cli_generates_predictions(tmp_path, annotation_db, wsi_path):
     data_paths_path = tmp_path / "data_paths.yaml"
     data_paths_path.write_text(yaml.safe_dump(data_paths))
 
-    model = torch.jit.script(MeanModel())
+    model = make_model({"name": "cnn_baseline"})
     model_path = tmp_path / "model.pt"
-    model.save(str(model_path))
+    torch.save({"model": model.state_dict()}, model_path)
+    (model_path.parent / "train.yaml").write_text(
+        yaml.safe_dump({"model": {"name": "cnn_baseline"}})
+    )
 
     out_csv = tmp_path / "predictions.csv"
     run_test_cli(
