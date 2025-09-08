@@ -21,12 +21,30 @@ __all__ = ["build_transforms", "BasicAugment"]
 
 
 class BasicAugment(torch.nn.Module):
-    """Simple flip and rotation augmentations.
+    """Simple flip, rotation and optional colour jitter augmentations.
 
     This transform expects a ``torch.Tensor`` image in ``C×H×W`` format and
     applies random horizontal/vertical flips and a random rotation chosen from
-    ``{0°, 90°, 180°, 270°}``.
+    ``{0°, 90°, 180°, 270°}``.  If ``jitter`` is enabled, a small colour jitter
+    is applied after the geometric transformations.
+
+    Parameters
+    ----------
+    jitter:
+        If ``True`` a small :class:`~torchvision.transforms.ColorJitter` is
+        applied after the flips and rotations.
     """
+
+    def __init__(self, *, jitter: bool = False) -> None:
+        super().__init__()
+        self.jitter = jitter
+        self._jitter = (
+            transforms.ColorJitter(
+                brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
+            )
+            if jitter
+            else None
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401 - short
         if random.random() < 0.5:
@@ -36,6 +54,8 @@ class BasicAugment(torch.nn.Module):
         k = random.randint(0, 3)
         if k:
             x = torch.rot90(x, k, (1, 2))
+        if self._jitter is not None:
+            x = self._jitter(x)
         return x
 
 
@@ -90,7 +110,7 @@ def build_transforms(
             raise ValueError(f"Unknown augmentation strategy: {augmentation}")
         if aug_name != "none":
             # Insert basic augment after ToTensor and before normalisation.
-            tfms.insert(1, BasicAugment())
+            tfms.insert(1, BasicAugment(jitter=aug_name == "basic"))
         if aug_name == "strong":
             tfms = [_strong_augment()] + tfms
 
