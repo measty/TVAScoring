@@ -31,7 +31,7 @@ def _infer_batch(
 def score_wsi(
     model: torch.nn.Module,
     wsi: WSIReader | str,
-    annotation_store: str | None = None,
+    masker: str | None = None,
     *,
     patch_size: int,
     stride: int | None = None,
@@ -50,9 +50,10 @@ def score_wsi(
         PyTorch model returning a scalar score in ``[-1, 1]`` for each patch.
     wsi:
         Whole-slide image or path to one.
-    annotation_store:
-        Optional annotation store path restricting inference to specific
-        regions.
+    masker:
+        Optional masking strategy restricting inference to specific regions.
+        Can be an annotation store path, ``None`` for no restriction, or
+        ``"otsu"`` to generate a tissue mask on-the-fly.
     patch_size, stride, min_mask_ratio:
         Passed through to :func:`tile_wsi`.
     resolution, units:
@@ -87,7 +88,7 @@ def score_wsi(
 
     for coord, patch in tile_wsi(
         wsi,
-        annotation_store=annotation_store,
+        masker=masker,
         patch_size=patch_size,
         stride=stride,
         min_mask_ratio=min_mask_ratio,
