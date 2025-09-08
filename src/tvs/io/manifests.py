@@ -1,11 +1,15 @@
-"""Utility helpers shared across CLI modules."""
+"""Helpers for loading slide manifests and resolving paths.
+
+These utilities centralise common CSV parsing logic and path resolution
+for manifest files used across CLI tools.
+"""
 from __future__ import annotations
 
 import csv
 from pathlib import Path
 from typing import List, Tuple
 
-from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
+from .paths import find_slide_path, parse_data_paths, resolve_annotation_path
 
 __all__ = ["load_manifest", "slides_from_manifest"]
 
@@ -21,10 +25,10 @@ def load_manifest(path: Path) -> List[Tuple[str, Path]]:
     Returns
     -------
     list of tuple[str, Path]
-        List of (slide_id, annotation_path) pairs in the order they appear in
-        the file. The annotation paths are converted to :class:`Path` objects.
+        List of ``(slide_id, annotation_path)`` pairs in the order they appear
+        in the file. The annotation paths are converted to :class:`Path`
+        objects.
     """
-
     entries: List[Tuple[str, Path]] = []
     with path.open() as f:
         reader = csv.DictReader(f)
@@ -59,7 +63,6 @@ def slides_from_manifest(
     ValueError
         If the manifest is empty.
     """
-
     entries = load_manifest(manifest)
     if not entries:
         raise ValueError("Manifest contains no entries")

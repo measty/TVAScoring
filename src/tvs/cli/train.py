@@ -13,9 +13,9 @@ from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
 from ..data.samplers import BalancedSampler
 from ..data.transforms import build_transforms
+from ..io import slides_from_manifest
 from ..models import make_model
 from ..training import Trainer, get_loss
-from .utils import slides_from_manifest
 
 log = logging.getLogger(__name__)
 

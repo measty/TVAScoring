@@ -13,7 +13,7 @@ from tqdm import tqdm
 from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
 from ..data.transforms import build_transforms
-from .utils import slides_from_manifest
+from ..io import slides_from_manifest
 
 log = logging.getLogger(__name__)
 
