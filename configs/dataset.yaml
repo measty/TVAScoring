@@ -1,6 +1,6 @@
-patch_size: 448
-stride: 224
-resolution: 1.0
+patch_size: 224
+stride: 112
+resolution: 2.0
 units: mpp
 slide_extension: ndpi
 min_mask_ratio: 0.5
