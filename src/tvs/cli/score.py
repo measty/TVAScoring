@@ -13,6 +13,7 @@ from PIL import Image
 
 from ..inference import score_wsi
 from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
+from ..models import make_model
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Path to a whole-slide image or a manifest CSV produced by ``tvs-split``",
     )
-    parser.add_argument("model", type=Path, help="TorchScript model to use for scoring")
+    parser.add_argument(
+        "model",
+        type=Path,
+        help="Model checkpoint (e.g., best.pt) saved by the training engine",
+    )
     parser.add_argument(
         "--annotation-db",
         type=Path,
@@ -97,7 +102,15 @@ def main(args: list[str] | None = None) -> None:
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    model = torch.jit.load(str(ns.model))
+    ckpt = torch.load(ns.model, map_location="cpu")
+    train_cfg_path = ns.model.parent / "train.yaml"
+    if not train_cfg_path.exists():
+        parser.error(f"Missing train.yaml next to {ns.model}")
+    train_cfg = yaml.safe_load(train_cfg_path.read_text())
+    model = make_model(train_cfg["model"])
+    model.load_state_dict(ckpt["model"])
+    model.eval()
+
     cfg_path = ns.model.parent / "dataset.yaml"
     dataset_cfg = yaml.safe_load(cfg_path.read_text())
 

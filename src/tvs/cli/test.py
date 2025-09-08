@@ -5,7 +5,6 @@ import argparse
 import csv
 import logging
 from pathlib import Path
-from typing import List, Tuple
 
 import torch
 import yaml
@@ -14,7 +13,8 @@ from tqdm import tqdm
 from ..data.dataset import PatchDataset
 from ..data.extractors import build_filters, make_extractors
 from ..data.transforms import build_transforms
-from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
+from ..io import slides_from_manifest
+from ..models import make_model
 
 log = logging.getLogger(__name__)
 
@@ -24,28 +24,8 @@ __all__ = ["build_parser", "main"]
 # ---------------------------------------------------------------------------
 
 
-def _load_manifest(path: Path) -> List[Tuple[str, Path]]:
-    entries: List[Tuple[str, Path]] = []
-    with path.open() as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            entries.append((row["slide_id"], Path(row["path"])))
-    return entries
-
-
 def _build_dataset(manifest: Path, dataset_cfg: dict, data_paths: dict) -> PatchDataset:
-    entries = _load_manifest(manifest)
-    if not entries:
-        raise ValueError("Manifest contains no entries")
-
-    slide_dirs, ann_dirs = parse_data_paths(data_paths)
-
-    slides: List[Tuple[Path, str]] = []
-    for slide_id, ann_path in entries:
-        ext = dataset_cfg.get("slide_extension", "svs").lstrip(".")
-        wsi_path = find_slide_path(slide_id, slide_dirs, ext)
-        ann_path = resolve_annotation_path(ann_path, ann_dirs)
-        slides.append((wsi_path, str(ann_path)))
+    slides = slides_from_manifest(manifest, dataset_cfg, data_paths)
 
     class_labels = list(dataset_cfg["class_map"].keys())
     filters = build_filters([lbl[0].upper() for lbl in class_labels])
@@ -74,7 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("manifest", type=Path, help="CSV manifest of test slides")
-    parser.add_argument("model", type=Path, help="TorchScript model for inference")
+    parser.add_argument(
+        "model",
+        type=Path,
+        help="Model checkpoint (e.g., best.pt) saved by the training engine",
+    )
     parser.add_argument(
         "--dataset-config",
         type=Path,
@@ -113,7 +97,14 @@ def main(args: List[str] | None = None) -> None:
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = torch.jit.load(str(ns.model)).to(device).eval()
+    ckpt = torch.load(ns.model, map_location=device)
+    cfg_path = ns.model.parent / "train.yaml"
+    if not cfg_path.exists():
+        parser.error(f"Missing train.yaml next to {ns.model}")
+    train_cfg = yaml.safe_load(cfg_path.read_text())
+    model = make_model(train_cfg["model"]).to(device)
+    model.load_state_dict(ckpt["model"])
+    model.eval()
 
     preds: List[float] = []
     targets: List[float] = []
