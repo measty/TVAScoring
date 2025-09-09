@@ -1,10 +1,10 @@
 model:
   name: resnet18
   finetune_backbone: True
-output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\resnet_model_224_strong
+output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\resnet_model_ft_strong
 epochs: 50
 batch_size: 32
-learning_rate: 0.0005
+learning_rate: 0.0002
 weight_decay: 0.0001
 optimizer: adamw
 scheduler: cosine
