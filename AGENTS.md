@@ -206,3 +206,4 @@ tubulovillous/
 * [x] 12 Unit tests: models/training/inference
 * [x] 13 Docs & Cleanup — README quick-start added; repo consistency verified
 * [x] Strong augmentation config propagated to training CLI
+* [x] Added background patch sampling with weighted loss to nudge predictions toward zero on unlabelled regions

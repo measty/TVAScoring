@@ -40,6 +40,11 @@ class PatchDataset(Dataset):
         Mapping from class label to regression score (e.g. ``{"villous": 1.0}``).
     transform:
         Optional transform applied to the raw patch image.
+    label_weights:
+        Optional mapping of class label to a scalar weight.  When provided the
+        weight corresponding to the patch's class is appended to the returned
+        sample and can be used to modulate the loss contribution for that
+        example.
     return_coords:
         If ``True`` the extractor's coordinates are returned in addition to the
         image and target.  This can be useful for debugging or visualization.
@@ -51,6 +56,7 @@ class PatchDataset(Dataset):
         label_scores: Mapping[str, float],
         *,
         transform: Any | None = None,
+        label_weights: Mapping[str, float] | None = None,
         return_coords: bool = False,
     ) -> None:
         self.labels: list[str] = list(extractors.keys())
@@ -60,6 +66,12 @@ class PatchDataset(Dataset):
         self.scores = {label: float(label_scores[label]) for label in self.labels}
         self.transform = transform
         self.return_coords = return_coords
+        if label_weights is not None:
+            self.weights = {
+                label: float(label_weights.get(label, 1.0)) for label in self.labels
+            }
+        else:
+            self.weights = None
 
         # lengths per extractor and per class
         self._extractor_lengths: list[list[int]] = [
@@ -116,10 +128,12 @@ class PatchDataset(Dataset):
             img = torch.from_numpy(np.asarray(img)).permute(2, 0, 1)
 
         target = torch.tensor(self.scores[label], dtype=torch.float32)
-
+        items = [img, target]
         if self.return_coords:
-            return img, target, coords
-        return img, target
+            items.append(coords)
+        if self.weights is not None:
+            items.append(torch.tensor(self.weights[label], dtype=torch.float32))
+        return tuple(items)
 
     # ------------------------------------------------------------------
     @property

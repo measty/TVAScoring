@@ -89,7 +89,12 @@ class Trainer:
 
     # ------------------------------------------------------------------
     def _step_batch(self, batch, train: bool = True):
-        imgs, targets = batch
+        if len(batch) == 3:
+            imgs, targets, weights = batch
+            weights = weights.to(self.device)
+        else:
+            imgs, targets = batch[:2]
+            weights = None
         imgs = imgs.to(self.device)
         targets = targets.to(self.device)
 
@@ -101,7 +106,16 @@ class Trainer:
         )
         with autocast_ctx:
             preds = self.model(imgs)
-            loss = self.loss_fn(preds, targets)
+            loss_val = self.loss_fn(preds, targets)
+            if weights is not None:
+                if loss_val.ndim == 0:
+                    raise RuntimeError(
+                        "Loss function must use reduction='none' when sample weights are provided"
+                    )
+                loss_val = loss_val.view(loss_val.size(0), -1).mean(dim=1)
+                loss = (loss_val * weights).mean()
+            else:
+                loss = loss_val.mean() if loss_val.ndim > 0 else loss_val
         if train:
             if self.scaler is not None:
                 self.scaler.scale(loss).backward()

@@ -78,6 +78,33 @@ def test_trainer_overfits_small_batch():
     assert mse.item() < 1e-4
 
 
+def test_trainer_applies_sample_weights():
+    imgs = torch.zeros(2, 3, 4, 4)
+    targets = torch.tensor([[0.0], [1.0]])
+    weights = torch.tensor([0.0, 1.0])
+    ds = TensorDataset(imgs, targets, weights)
+    loader = DataLoader(ds, batch_size=2)
+    model = torch.nn.Sequential(
+        torch.nn.Flatten(),
+        torch.nn.Linear(3 * 4 * 4, 1),
+        torch.nn.Tanh(),
+    )
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    trainer = Trainer(
+        model,
+        optimizer,
+        get_loss("mse"),
+        torch.device("cpu"),
+    )
+    batch = next(iter(loader))
+    loss, _, _ = trainer._step_batch(batch, train=False)
+    # Only second sample should contribute to loss
+    with torch.no_grad():
+        preds = model(imgs)
+        unweighted = torch.nn.functional.mse_loss(preds, targets)
+    assert loss.item() < unweighted.item()
+
+
 def _make_dummy_model():
     class DummyModel(torch.nn.Module):
         def __init__(self) -> None:

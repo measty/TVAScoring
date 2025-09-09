@@ -10,7 +10,7 @@ import torch
 import yaml
 
 from ..data.dataset import PatchDataset
-from ..data.extractors import build_filters, make_extractors
+from ..data.extractors import build_filters, make_background_extractors, make_extractors
 from ..data.samplers import BalancedSampler
 from ..data.transforms import build_transforms
 from ..io import slides_from_manifest
@@ -41,10 +41,29 @@ def _make_loader(
         resolution=dataset_cfg.get("resolution", 0.5),
         min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
     )
+    label_scores = dict(dataset_cfg["class_map"])
+    label_weights = {lbl: 1.0 for lbl in label_scores}
+    bg_weight = dataset_cfg.get("background_weight")
+    if bg_weight is not None:
+        bg_extractors = make_background_extractors(
+            slides,
+            patch_size=dataset_cfg["patch_size"],
+            stride=dataset_cfg.get("stride"),
+            resolution=dataset_cfg.get("resolution", 0.5),
+            min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
+        )
+        extractors["background"] = bg_extractors
+        label_scores["background"] = 0.0
+        label_weights["background"] = float(bg_weight)
     transform = build_transforms(
         train=train, augmentation=dataset_cfg.get("augmentation", {}).get("name")
     )
-    dataset = PatchDataset(extractors, dataset_cfg["class_map"], transform=transform)
+    dataset = PatchDataset(
+        extractors,
+        label_scores,
+        transform=transform,
+        label_weights=label_weights if bg_weight is not None else None,
+    )
     sampler = BalancedSampler(dataset)
     return torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers

@@ -12,7 +12,7 @@ import numpy as np
 import yaml
 
 from ..data.dataset import PatchDataset
-from ..data.extractors import build_filters, make_extractors
+from ..data.extractors import build_filters, make_background_extractors, make_extractors
 from ..io import slides_from_manifest
 
 log = logging.getLogger(__name__)
@@ -35,7 +35,19 @@ def _load_dataset(manifest: Path, dataset_cfg: dict, data_paths: dict) -> PatchD
         resolution=dataset_cfg.get("resolution", 0.5),
         min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
     )
-    return PatchDataset(extractors, dataset_cfg["class_map"])
+    label_scores = dict(dataset_cfg["class_map"])
+    bg_weight = dataset_cfg.get("background_weight")
+    if bg_weight is not None:
+        bg_extractors = make_background_extractors(
+            slides,
+            patch_size=dataset_cfg["patch_size"],
+            stride=dataset_cfg.get("stride"),
+            resolution=dataset_cfg.get("resolution", 0.5),
+            min_mask_ratio=dataset_cfg.get("min_mask_ratio", 0.5),
+        )
+        extractors["background"] = bg_extractors
+        label_scores["background"] = 0.0
+    return PatchDataset(extractors, label_scores)
 
 
 # ---------------------------------------------------------------------------
