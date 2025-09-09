@@ -11,3 +11,4 @@ openslide-bin
 rich
 tqdm
 matplotlib
+scikit-learn

@@ -39,7 +39,8 @@ pip install -e .
 
 4. **Evaluate predictions**
 
-   Provide a CSV with `prediction` and `target` columns to compute metrics and a reliability plot:
+   Provide a CSV with `prediction` and `target` columns to compute metrics,
+   a reliability plot, and a ROC curve (T vs V only):
 
    ```bash
    tvs-evaluate predictions.csv
