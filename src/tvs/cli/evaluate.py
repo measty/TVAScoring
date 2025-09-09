@@ -12,6 +12,7 @@ from typing import Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from sklearn.metrics import auc, roc_curve
 
 from ..training.metrics import mae, pearsonr, rmse, spearmanr
 
@@ -21,6 +22,7 @@ __all__ = [
     "build_parser",
     "compute_metrics",
     "reliability_curve",
+    "roc_curve_tv",
     "main",
 ]
 
@@ -35,12 +37,18 @@ def compute_metrics(
 
     p = torch.tensor(preds, dtype=torch.float32)
     t = torch.tensor(targets, dtype=torch.float32)
-    return {
+    metrics = {
         "mae": mae(p, t),
         "rmse": rmse(p, t),
         "pearson": pearsonr(p, t),
         "spearman": spearmanr(p, t),
     }
+    try:
+        _, _, _, auroc = roc_curve_tv(preds, targets)
+    except ValueError:
+        auroc = float("nan")
+    metrics["auroc"] = auroc
+    return metrics
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +82,34 @@ def reliability_curve(
 # ---------------------------------------------------------------------------
 
 
+def roc_curve_tv(
+    preds: Sequence[float], targets: Sequence[float]
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    """Compute ROC curve for tubular (T) vs villous (V) classes.
+
+    Predictions and targets are assumed to lie in ``[-1, 1]`` with targets
+    ``<0`` representing class T and ``>0`` representing class V. Neutral
+    targets (``0``) are ignored.
+    """
+
+    preds_arr = np.asarray(list(preds), dtype=float)
+    targets_arr = np.asarray(list(targets), dtype=float)
+    mask = targets_arr != 0
+    preds_arr = preds_arr[mask]
+    targets_arr = targets_arr[mask]
+    if preds_arr.size == 0:
+        raise ValueError("No T/V samples available for ROC computation")
+    labels = (targets_arr > 0).astype(int)
+    if np.unique(labels).size < 2:
+        raise ValueError("ROC curve requires both T and V samples")
+    fpr, tpr, thresholds = roc_curve(labels, preds_arr)
+    auroc = auc(fpr, tpr)
+    return fpr, tpr, thresholds, auroc
+
+
+# ---------------------------------------------------------------------------
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Evaluate predictions against targets and generate metrics",
@@ -93,6 +129,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("reliability.png"),
         help="Reliability plot output path",
+    )
+    parser.add_argument(
+        "--roc",
+        type=Path,
+        default=Path("roc.png"),
+        help="ROC curve output path",
     )
     parser.add_argument(
         "--bins", type=int, default=10, help="Number of bins for reliability plot"
@@ -123,6 +165,23 @@ def main(args: list[str] | None = None) -> None:
     metrics = compute_metrics(preds, targets)
     log.info("Metrics: %s", metrics)
     ns.output.write_text(json.dumps(metrics, indent=2))
+
+    # ROC curve
+    try:
+        fpr, tpr, _, auroc = roc_curve_tv(preds, targets)
+        plt.figure()
+        plt.plot(fpr, tpr, label=f"AUROC = {auroc:.3f}")
+        plt.plot([0, 1], [0, 1], "--", color="gray")
+        plt.xlabel("False positive rate")
+        plt.ylabel("True positive rate")
+        plt.title("ROC curve (T vs V)")
+        plt.legend(loc="lower right")
+        plt.tight_layout()
+        plt.savefig(ns.roc)
+        plt.close()
+        log.info("AUROC (T vs V): %.4f", auroc)
+    except ValueError as e:  # pragma: no cover - edge case
+        log.warning("ROC curve not plotted: %s", e)
 
     # Reliability plot
     centers, mean_pred, mean_target, counts = reliability_curve(preds, targets, ns.bins)
