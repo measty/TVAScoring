@@ -83,13 +83,14 @@ def build_parser() -> argparse.ArgumentParser:
 # ---------------------------------------------------------------------------
 
 
-def main(args: List[str] | None = None) -> None:
+def main(args: list[str] | None = None) -> None:
     parser = build_parser()
     ns = parser.parse_args(args=args)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    dataset_cfg = yaml.safe_load(ns.dataset_config.read_text())
+    dataset_cfg = yaml.safe_load((ns.model.parent / "dataset.yaml").read_text())
+    dataset_cfg["class_map"] = {k: v for k, v in dataset_cfg["class_map"].items() if v != 0.0}
     data_paths = yaml.safe_load(ns.data_paths.read_text())
     dataset = _build_dataset(ns.manifest, dataset_cfg, data_paths)
     loader = torch.utils.data.DataLoader(
@@ -106,8 +107,8 @@ def main(args: List[str] | None = None) -> None:
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    preds: List[float] = []
-    targets: List[float] = []
+    preds: list[float] = []
+    targets: list[float] = []
     for imgs, tgt in tqdm(loader, desc="Infer", unit="batch"):
         imgs = imgs.to(device)
         with torch.no_grad():
@@ -115,6 +116,7 @@ def main(args: List[str] | None = None) -> None:
         preds.extend(out.detach().cpu().tolist())
         targets.extend(tgt.detach().cpu().tolist())
 
+    ns.output.parent.mkdir(parents=True, exist_ok=True)
     with ns.output.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["prediction", "target"])
         writer.writeheader()

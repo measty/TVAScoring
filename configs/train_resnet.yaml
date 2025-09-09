@@ -1,7 +1,7 @@
 model:
   name: resnet18
-  finetune_backbone: 5
-output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\resnet_model_224
+  finetune_backbone: True
+output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\resnet_model_224_strong
 epochs: 50
 batch_size: 32
 learning_rate: 0.0005

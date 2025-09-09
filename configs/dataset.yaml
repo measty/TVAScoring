@@ -6,6 +6,7 @@ slide_extension: ndpi
 min_mask_ratio: 0.5
 class_map:
   T: -1.0
+  N: 0.0
   V: 1.0
 augmentation:
-  name: strong
+  name: basic
