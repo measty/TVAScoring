@@ -119,22 +119,13 @@ def build_parser() -> argparse.ArgumentParser:
         "predictions", type=Path, help="CSV with prediction and target columns"
     )
     parser.add_argument(
-        "--output",
+        "--output-dir",
         type=Path,
-        default=Path("metrics.json"),
-        help="Where to save metrics JSON",
-    )
-    parser.add_argument(
-        "--plot",
-        type=Path,
-        default=Path("reliability.png"),
-        help="Reliability plot output path",
-    )
-    parser.add_argument(
-        "--roc",
-        type=Path,
-        default=Path("roc.png"),
-        help="ROC curve output path",
+        default=None,
+        help=(
+            "Directory to save metrics and plots. Defaults to the predictions "
+            "CSV directory if not provided."
+        ),
     )
     parser.add_argument(
         "--bins", type=int, default=10, help="Number of bins for reliability plot"
@@ -162,9 +153,16 @@ def main(args: list[str] | None = None) -> None:
     if not preds:
         raise ValueError("No predictions found in CSV")
 
+    output_dir = ns.output_dir or ns.predictions.parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path = output_dir / "metrics.json"
+    roc_path = output_dir / "roc.png"
+    rel_path = output_dir / "reliability.png"
+
     metrics = compute_metrics(preds, targets)
     log.info("Metrics: %s", metrics)
-    ns.output.write_text(json.dumps(metrics, indent=2))
+    metrics_path.write_text(json.dumps(metrics, indent=2))
+    log.info("Saved metrics to %s", metrics_path)
 
     # ROC curve
     try:
@@ -177,9 +175,10 @@ def main(args: list[str] | None = None) -> None:
         plt.title("ROC curve (T vs V)")
         plt.legend(loc="lower right")
         plt.tight_layout()
-        plt.savefig(ns.roc)
+        plt.savefig(roc_path)
         plt.close()
         log.info("AUROC (T vs V): %.4f", auroc)
+        log.info("Saved ROC curve to %s", roc_path)
     except ValueError as e:  # pragma: no cover - edge case
         log.warning("ROC curve not plotted: %s", e)
 
@@ -193,8 +192,9 @@ def main(args: list[str] | None = None) -> None:
     plt.ylabel("Mean target")
     plt.title("Reliability curve")
     plt.tight_layout()
-    plt.savefig(ns.plot)
+    plt.savefig(rel_path)
     plt.close()
+    log.info("Saved reliability plot to %s", rel_path)
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
