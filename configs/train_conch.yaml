@@ -1,14 +1,14 @@
 model:
   name: conch_head
   checkpoint_path: E:\HIMICO\leuven_new\TVA_anns\conch_model.bin
-  head_type: transformer
+  head_type: mlp
   finetune_backbone: False
   image_size: 224
-output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\conch_model_tr_basic
+output_dir: E:\HIMICO\leuven_new\TVA_anns\outputs\conch_model_mlp_strong_v2
 epochs: 50
 batch_size: 32
-learning_rate: 0.00001
-weight_decay: 0.00001
+learning_rate: 0.000002
+weight_decay: 0.000005
 optimizer: adamw
 scheduler: cosine
 num_workers: 0
