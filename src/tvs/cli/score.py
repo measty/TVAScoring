@@ -1,4 +1,4 @@
-"""Command-line interface for whole-slide scoring."""
+﻿"""Command-line interface for whole-slide scoring."""
 from __future__ import annotations
 
 import argparse
@@ -12,9 +12,9 @@ import yaml
 from matplotlib import cm
 from PIL import Image
 
-from ..inference import score_wsi
-from ..io import find_slide_path, parse_data_paths, resolve_annotation_path
-from ..models import make_model
+from tvs.inference import score_wsi
+from tvs.io import find_slide_path, parse_data_paths, resolve_annotation_path
+from tvs.models import make_model
 
 log = logging.getLogger(__name__)
 
@@ -75,6 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("scores"),
         help="Directory to save heatmap PNGs when input is a manifest CSV",
     )
+    parser.add_argument(
+        "--save-csv",
+        action="store_true",
+        help="Also save per-patch predictions as CSV (same stem as the heatmap)",
+    )
     return parser
 
 
@@ -87,8 +92,10 @@ def _score_and_save(
     batch_size: int,
     heatmap_mpp: float,
     dataset_cfg: dict,
+    csv_path: Path | None = None,
 ) -> None:
     """Run scoring for a single slide and write the PNG output."""
+    print(f"Scoring {wsi} with masker {masker}")
 
     masker_arg: str | None
     if masker in (None, "otsu"):
@@ -96,7 +103,7 @@ def _score_and_save(
     else:
         masker_arg = str(masker)
 
-    heatmap = score_wsi(
+    result = score_wsi(
         model,
         wsi,
         masker_arg,
@@ -106,12 +113,26 @@ def _score_and_save(
         resolution=dataset_cfg.get("resolution", 0),
         units=dataset_cfg.get("units", "mpp"),
         heatmap_mpp=heatmap_mpp,
+        return_dataframe=csv_path is not None,
     )
 
+    if csv_path is not None:
+        heatmap, dataframe = result
+    else:
+        heatmap = result  # type: ignore[assignment]
+        dataframe = None
+
+    print(f"saving heatmap to {output_path}")
     cmap = cm.get_cmap("coolwarm")
     img = cmap((heatmap + 1) / 2)[..., :3]
     img = (img * 255).astype(np.uint8)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(img).save(output_path)
+
+    if dataframe is not None:
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        dataframe.to_csv(csv_path, index=False)
+        print(f"saving patch predictions to {csv_path}")
 
 
 def main(args: list[str] | None = None) -> None:
@@ -156,6 +177,7 @@ def main(args: list[str] | None = None) -> None:
                 else:
                     masker = None
                 log.info("Scoring %s", slide_id)
+                csv_path = output_dir / f"{slide_id}.csv" if ns.save_csv else None
                 _score_and_save(
                     model,
                     wsi_path,
@@ -164,6 +186,7 @@ def main(args: list[str] | None = None) -> None:
                     batch_size=ns.batch_size,
                     heatmap_mpp=ns.heatmap_mpp,
                     dataset_cfg=dataset_cfg,
+                    csv_path=csv_path,
                 )
     else:
         # Single-slide scoring
@@ -177,6 +200,15 @@ def main(args: list[str] | None = None) -> None:
             masker = "otsu"
         else:
             masker = None
+
+        if ns.save_csv:
+            if ns.output.suffix:
+                csv_path = ns.output.with_suffix(".csv")
+            else:
+                csv_path = ns.output.with_name(f"{ns.output.name}.csv")
+        else:
+            csv_path = None
+
         _score_and_save(
             model,
             ns.input,
@@ -185,6 +217,7 @@ def main(args: list[str] | None = None) -> None:
             batch_size=ns.batch_size,
             heatmap_mpp=ns.heatmap_mpp,
             dataset_cfg=dataset_cfg,
+            csv_path=csv_path,
         )
 
 

@@ -1,4 +1,4 @@
-tiatoolbox
+﻿tiatoolbox
 torch
 torchvision
 albumentations
@@ -12,3 +12,4 @@ rich
 tqdm
 matplotlib
 scikit-learn
+pandas

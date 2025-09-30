@@ -1,9 +1,10 @@
-"""High-level utilities for scoring whole-slide images."""
+﻿"""High-level utilities for scoring whole-slide images."""
 from __future__ import annotations
 
 from typing import Sequence
 
 import numpy as np
+import pandas as pd
 import torch
 from tiatoolbox.wsicore.wsireader import WSIReader
 
@@ -41,7 +42,8 @@ def score_wsi(
     units: str = "mpp",
     heatmap_mpp: float = 6.0,
     device: torch.device | None = None,
-) -> np.ndarray:
+    return_dataframe: bool = False,
+) -> np.ndarray | tuple[np.ndarray, pd.DataFrame]:
     """Score a whole-slide image with a patch-level model.
 
     Parameters
@@ -65,11 +67,16 @@ def score_wsi(
         Number of patches per forward pass.
     device:
         Device for model execution. Defaults to CPU (or CUDA when available).
+    return_dataframe:
+        When ``True`` also return a :class:`pandas.DataFrame` containing the
+        patch coordinates (in baseline level-0 space) and scores.
 
     Returns
     -------
-    np.ndarray
-        Heatmap of scores with shape matching the slide dimensions.
+    np.ndarray | tuple[np.ndarray, pandas.DataFrame]
+        Heatmap of scores with shape matching the slide dimensions. When
+        ``return_dataframe`` is ``True`` a tuple of ``(heatmap, dataframe)`` is
+        returned.
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -77,10 +84,34 @@ def score_wsi(
 
     if not isinstance(wsi, WSIReader):
         wsi = WSIReader.open(wsi)
+
+    native_mpp = getattr(wsi.info, "mpp", None)
+    baseline_mpp_x: float | None = None
+    baseline_mpp_y: float | None = None
+    if native_mpp is not None:
+        try:
+            baseline_mpp_x = float(native_mpp[0])
+        except (TypeError, IndexError, ValueError):
+            baseline_mpp_x = None
+        try:
+            baseline_mpp_y = float(native_mpp[1])
+        except (TypeError, IndexError, ValueError):
+            baseline_mpp_y = None
+
     if resolution == 0:
-        resolution = float(wsi.info.mpp[0])
+        if baseline_mpp_x is None:
+            raise ValueError("Unable to infer resolution because the slide lacks mpp metadata")
+        resolution = float(baseline_mpp_x)
+    else:
+        resolution = float(resolution)
+
     if units != "mpp":  # pragma: no cover - sanity check
         raise ValueError("score_wsi currently only supports units='mpp'")
+
+    if baseline_mpp_x is None:
+        baseline_mpp_x = float(resolution)
+    if baseline_mpp_y is None:
+        baseline_mpp_y = baseline_mpp_x
 
     coords: list[tuple[int, int, int, int]] = []
     scores: list[float] = []
@@ -108,4 +139,24 @@ def score_wsi(
     shape = thumb.shape[:2]
     scale = resolution / heatmap_mpp
     heatmap = stitch_scores(coords, scores, shape, scale)
-    return heatmap
+
+    if not return_dataframe:
+        return heatmap
+
+    scale_x = resolution / baseline_mpp_x if baseline_mpp_x else 1.0
+    scale_y = resolution / baseline_mpp_y if baseline_mpp_y else 1.0
+    records = [
+        {
+            "x": x * scale_x,
+            "y": y * scale_y,
+            "width": w * scale_x,
+            "height": h * scale_y,
+            "score": score,
+        }
+        for (x, y, w, h), score in zip(coords, scores)
+    ]
+    dataframe = pd.DataFrame.from_records(
+        records,
+        columns=["x", "y", "width", "height", "score"],
+    )
+    return heatmap, dataframe

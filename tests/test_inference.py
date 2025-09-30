@@ -1,4 +1,5 @@
-import numpy as np
+﻿import numpy as np
+import pandas as pd
 import torch
 from tiatoolbox.wsicore.wsireader import WSIReader
 
@@ -70,6 +71,70 @@ def test_score_wsi_matches_manual(annotation_db, wsi_path):
     )
     assert heatmap.shape == expected.shape
     np.testing.assert_allclose(heatmap, expected, rtol=1e-6, atol=1e-6)
+
+
+def test_score_wsi_dataframe_scaling(annotation_db, wsi_path):
+    db_path, _ = annotation_db
+    model = MeanModel()
+    wsi = WSIReader.open(wsi_path)
+
+    coords = [
+        coord
+        for coord, _ in tile_wsi(
+            wsi,
+            masker=str(db_path),
+            patch_size=512,
+            stride=512,
+            min_mask_ratio=0.0,
+            resolution=1.0,
+            units="mpp",
+        )
+    ]
+
+    heatmap, dataframe = score_wsi(
+        model,
+        wsi,
+        masker=str(db_path),
+        patch_size=512,
+        stride=512,
+        batch_size=4,
+        min_mask_ratio=0.0,
+        resolution=1.0,
+        units="mpp",
+        heatmap_mpp=6.0,
+        return_dataframe=True,
+    )
+
+    assert isinstance(heatmap, np.ndarray)
+    assert isinstance(dataframe, pd.DataFrame)
+    assert list(dataframe.columns) == ["x", "y", "width", "height", "score"]
+    assert len(dataframe) == len(coords)
+
+    native_mpp = getattr(wsi.info, "mpp", None)
+    baseline_x = 1.0
+    baseline_y = 1.0
+    if native_mpp is not None:
+        try:
+            baseline_x = float(native_mpp[0])
+        except (TypeError, IndexError, ValueError):
+            baseline_x = 1.0
+        try:
+            baseline_y = float(native_mpp[1])
+        except (TypeError, IndexError, ValueError):
+            baseline_y = baseline_x
+    else:
+        baseline_y = baseline_x
+    scale_x = 1.0 / baseline_x
+    scale_y = 1.0 / baseline_y
+    expected_x = np.array([c[0] for c in coords], dtype=float) * scale_x
+    expected_y = np.array([c[1] for c in coords], dtype=float) * scale_y
+    expected_w = np.array([c[2] for c in coords], dtype=float) * scale_x
+    expected_h = np.array([c[3] for c in coords], dtype=float) * scale_y
+
+    np.testing.assert_allclose(dataframe["x"].to_numpy(), expected_x)
+    np.testing.assert_allclose(dataframe["y"].to_numpy(), expected_y)
+    np.testing.assert_allclose(dataframe["width"].to_numpy(), expected_w)
+    np.testing.assert_allclose(dataframe["height"].to_numpy(), expected_h)
 
 
 def test_stitch_scores_with_overlap():

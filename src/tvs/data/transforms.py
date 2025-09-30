@@ -23,7 +23,7 @@ __all__ = ["build_transforms", "BasicAugment"]
 class BasicAugment(torch.nn.Module):
     """Simple flip, rotation and optional colour jitter augmentations.
 
-    This transform expects a ``torch.Tensor`` image in ``C×H×W`` format and
+    This transform expects a ``torch.Tensor`` image in ``CxHxW`` format and
     applies random horizontal/vertical flips and a random rotation chosen from
     ``{0°, 90°, 180°, 270°}``.  If ``jitter`` is enabled, a small colour jitter
     is applied after the geometric transformations.
