@@ -64,16 +64,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Resolution of output heatmap in microns-per-pixel",
     )
     parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path("score.png"),
-        help="Path to save heatmap PNG for a single slide",
-    )
-    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("scores"),
-        help="Directory to save heatmap PNGs when input is a manifest CSV",
+        help="Directory to save heatmap PNGs and CSVs if chosen.",
     )
     parser.add_argument(
         "--save-csv",
@@ -189,7 +183,7 @@ def main(args: list[str] | None = None) -> None:
                     csv_path=csv_path,
                 )
     else:
-        # Single-slide scoring
+        # Single-slide scoring or run over glob of slides
         if ns.restrict_inference == "annotations":
             if ns.annotation_db is None:
                 parser.error(
@@ -201,24 +195,27 @@ def main(args: list[str] | None = None) -> None:
         else:
             masker = None
 
-        if ns.save_csv:
-            if ns.output.suffix:
-                csv_path = ns.output.with_suffix(".csv")
-            else:
-                csv_path = ns.output.with_name(f"{ns.output.name}.csv")
+        if "*" in ns.input.name:
+            slides = list(ns.input.parent.glob(ns.input.name))
         else:
-            csv_path = None
+            slides = [ns.input]
 
-        _score_and_save(
-            model,
-            ns.input,
-            ns.output,
-            masker=masker,
-            batch_size=ns.batch_size,
-            heatmap_mpp=ns.heatmap_mpp,
-            dataset_cfg=dataset_cfg,
-            csv_path=csv_path,
-        )
+        for slide in slides:
+            if ns.save_csv:
+                csv_path = ns.output_dir / f"{slide.stem}.csv"
+            else:
+                csv_path = None
+
+            _score_and_save(
+                model,
+                slide,
+                ns.output_dir / f"{slide.stem}.png",
+                masker=masker,
+                batch_size=ns.batch_size,
+                heatmap_mpp=ns.heatmap_mpp,
+                dataset_cfg=dataset_cfg,
+                csv_path=csv_path,
+            )
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
