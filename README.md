@@ -1,6 +1,7 @@
 # TubuloVillous Scoring (tvs)
 
-A research project to score colorectal polyp architecture on whole slide images using TIAToolbox and PyTorch.
+A model to score colorectal polyp architecture on whole slide images using TIAToolbox and PyTorch. The pre-trained weights for our villous scoring model can be found here:
+https://drive.google.com/drive/folders/1_4avGgOXCWblTGjaGr-KVDaMDDQ96dga?usp=sharing
 
 ## Installation
 
